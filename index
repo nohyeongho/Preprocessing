@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모델명 전처리 도구 (Excel Processor)</title>
+    <!-- SheetJS for Excel processing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 8px;
+            letter-spacing: -0.025em;
+        }
+
+        header p {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .config-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+            padding-left: 4px;
+        }
+
+        .input-group input {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            background: white;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .upload-area i {
+            width: 48px;
+            height: 48px;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+
+        .upload-area .instruction {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .upload-area .sub-instruction {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .file-info {
+            display: none;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-info i {
+            color: #10b981;
+        }
+
+        .file-details {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            font-size: 14px;
+            display: block;
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .btn-process {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-process:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-process:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .status {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.success {
+            display: block;
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.error {
+            display: block;
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .rules-info {
+            margin-top: 32px;
+            font-size: 12px;
+            color: var(--text-light);
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        .rules-info ul {
+            list-style: none;
+            margin-top: 8px;
+        }
+
+        .rules-info li {
+            margin-bottom: 4px;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .rules-info li::before {
+            content: "•";
+            color: var(--primary);
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Excel 모델명 전처리 도구</h1>
+            <p>모델명을 분리하고 Contents ID와 매핑합니다.</p>
+        </header>
+
+        <div class="config-area">
+            <div class="input-group">
+                <label for="model-col">모델명 위치 (예: J)</label>
+                <input type="text" id="model-col" value="J" placeholder="J">
+            </div>
+            <div class="input-group">
+                <label for="id-col">Contents ID 위치 (예: A)</label>
+                <input type="text" id="id-col" value="A" placeholder="A">
+            </div>
+            <div class="input-group" style="grid-column: span 2;">
+                <label for="output-filename">저장할 파일명 (선택 사항)</label>
+                <input type="text" id="output-filename" placeholder="파일명 입력 (미입력 시 기본값 사용)">
+            </div>
+        </div>
+
+        <div class="upload-area" id="drop-zone">
+            <i data-lucide="file-up"></i>
+            <div class="instruction">엑셀 파일을 드래그하거나 클릭하여 선택하세요</div>
+            <div class="sub-instruction">(.xlsx, .xls 파일 지원)</div>
+            <input type="file" id="file-input" accept=".xlsx, .xls">
+        </div>
+
+        <div class="file-info" id="file-info">
+            <i data-lucide="file-check-2"></i>
+            <div class="file-details">
+                <span class="file-name" id="selected-file-name">파일명.xlsx</span>
+                <span class="file-size" id="selected-file-size">0 KB</span>
+            </div>
+            <i data-lucide="x" style="cursor: pointer; color: #ef4444;" id="remove-file"></i>
+        </div>
+
+        <button class="btn-process" id="btn-process" disabled>
+            <span class="loading-spinner" id="spinner"></span>
+            <span id="btn-text">파일 처리 및 다운로드</span>
+        </button>
+
+        <div class="status" id="status-message"></div>
+
+        <div class="rules-info">
+            <strong>적용되는 자동 규칙:</strong>
+            <ul>
+                <li><strong>데이터 매핑</strong>: 모델명과 해당 행의 Contents ID를 1:1로 매핑합니다.</li>
+                <li><strong>헤더 추가</strong>: A1에 <code>product_model</code>, B1에 <code>contents_id</code>를 고정합니다.</li>
+                <li><strong>시트 이름</strong>: 결과 시트 이름을 <code>PDF_SVC_MAN</code>으로 설정합니다.</li>
+                <li><strong>기존 규칙 유지</strong>: 콤마 분리, 하이픈/마침표 뒷부분 삭제 및 중복 제거를 수반합니다.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Lucide 아이콘 초기화
+        lucide.createIcons();
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const fileNameLabel = document.getElementById('selected-file-name');
+        const fileSizeLabel = document.getElementById('selected-file-size');
+        const removeFileBtn = document.getElementById('remove-file');
+        const btnProcess = document.getElementById('btn-process');
+        const spinner = document.getElementById('spinner');
+        const btnText = document.getElementById('btn-text');
+        const statusMsg = document.getElementById('status-message');
+        const modelColInput = document.getElementById('model-col');
+        const idColInput = document.getElementById('id-col');
+        const outputFilenameInput = document.getElementById('output-filename');
+
+        let selectedFile = null;
+
+        // 컬럼 문자를 인덱스로 변환 (A -> 0, J -> 9)
+        function colToIdx(col) {
+            let res = 0;
+            col = col.toUpperCase();
+            for (let i = 0; i < col.length; i++) {
+                res = res * 26 + (col.charCodeAt(i) - 64);
+            }
+            return res - 1;
+        }
+
+        // 파일 선택 이벤트
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // 드래그 앤 드롭
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                const ext = file.name.split('.').pop().toLowerCase();
+
+                if (['xlsx', 'xls'].includes(ext)) {
+                    selectedFile = file;
+                    fileNameLabel.textContent = file.name;
+                    fileSizeLabel.textContent = (file.size / 1024).toFixed(1) + ' KB';
+
+                    dropZone.style.display = 'none';
+                    fileInfo.style.display = 'flex';
+                    btnProcess.disabled = false;
+                    statusMsg.style.display = 'none';
+                } else {
+                    showStatus('엑셀 파일(.xlsx, .xls)만 처리 가능합니다.', 'error');
+                }
+            }
+        }
+
+        removeFileBtn.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            dropZone.style.display = 'block';
+            fileInfo.style.display = 'none';
+            btnProcess.disabled = true;
+        });
+
+        function showStatus(msg, type) {
+            statusMsg.textContent = msg;
+            statusMsg.className = 'status ' + type;
+            statusMsg.style.display = 'block';
+        }
+
+        // 로직 처리
+        btnProcess.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const modelCol = colToIdx(modelColInput.value || 'J');
+            const idCol = colToIdx(idColInput.value || 'A');
+
+            try {
+                btnProcess.disabled = true;
+                spinner.style.display = 'inline-block';
+                btnText.textContent = '처리 중...';
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+
+                    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    let resultRows = [["product_model", "contents_id"]]; // Header
+                    let seenPairs = new Set();
+
+                    // Row 2 to end
+                    for (let i = 1; i < rawData.length; i++) {
+                        if (!rawData[i]) continue;
+
+                        const cellValue = rawData[i][modelCol];
+                        const contentsId = rawData[i][idCol];
+
+                        if (cellValue) {
+                            const models = String(cellValue).split(',').map(m => m.trim());
+
+                            models.forEach(model => {
+                                // 1. Dash truncation (after 5th char)
+                                const dashPos = model.indexOf('-', 4);
+                                if (dashPos !== -1) {
+                                    model = model.substring(0, dashPos);
+                                }
+
+                                // 2. Dot truncation
+                                const dotPos = model.indexOf('.');
+                                if (dotPos !== -1) {
+                                    model = model.substring(0, dotPos);
+                                }
+
+                                if (model) {
+                                    const pairKey = `${model}|${contentsId}`;
+                                    if (!seenPairs.has(pairKey)) {
+                                        resultRows.push([model, contentsId]);
+                                        seenPairs.add(pairKey);
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+                    // Create new Workbook for result
+                    const resultWS = XLSX.utils.aoa_to_sheet(resultRows);
+                    const newWB = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(newWB, resultWS, "PDF_SVC_MAN");
+
+                    // Output
+                    let outputName = outputFilenameInput.value.trim();
+                    if (!outputName) {
+                        outputName = selectedFile.name.replace(/\.[^/.]+$/, "") + "_processed";
+                    }
+                    if (!outputName.toLowerCase().endsWith('.xlsx')) {
+                        outputName += '.xlsx';
+                    }
+                    XLSX.writeFile(newWB, outputName);
+
+                    showStatus(`${resultRows.length - 1}개의 정제된 모델 데이터가 PDF_SVC_MAN 시트에 저장되었습니다.`, 'success');
+
+                    btnProcess.disabled = false;
+                    spinner.style.display = 'none';
+                    btnText.textContent = '파일 처리 및 다운로드';
+                };
+
+                reader.readAsArrayBuffer(selectedFile);
+
+            } catch (err) {
+                console.error(err);
+                showStatus('파일 처리 중 오류가 발생했습니다: ' + err.message, 'error');
+                btnProcess.disabled = false;
+                spinner.style.display = 'none';
+                btnText.textContent = '파일 처리 및 다운로드';
+            }
+        });
+    </script>
+</body>
+
+</html>
