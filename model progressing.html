@@ -369,7 +369,15 @@
                             <i data-lucide="clipboard" style="width:12px; height:12px;"></i>붙여넣기
                         </button>
                     </div>
-                    <textarea id="master-paste" placeholder="마스터 명단..."
+                    <div class="upload-area" onclick="getEl('master-file').click()"
+                        style="margin-bottom: 8px; border-style: solid; border-width: 1px; background: #fff;">
+                        <i data-lucide="file-spreadsheet" style="width:16px; height:16px;"></i>
+                        <span class="upload-text" id="master-file-status" style="font-size: 11px;">마스터 엑셀 업로드 (대용량
+                            권장)</span>
+                        <input type="file" id="master-file" accept=".xlsx, .xls" style="display:none;"
+                            onchange="handleFile(event, 0)">
+                    </div>
+                    <textarea id="master-paste" placeholder="또는 모델명을 직접 붙여넣으세요..."
                         style="height: 50px; border-color: #c7d2fe;"></textarea>
                 </div>
 
@@ -386,7 +394,7 @@
 
                 <div class="upload-area" onclick="getEl('s1-file').click()">
                     <i data-lucide="file-up"></i>
-                    <div class="upload-text">엑셀 파일 업로드</div>
+                    <div class="upload-text">출처 1 엑셀 업로드</div>
                     <div class="file-status-text" id="s1-file-status">(.xlsx, .xls)</div>
                     <input type="file" id="s1-file" accept=".xlsx, .xls" style="display:none;"
                         onchange="handleFile(event, 1)">
@@ -394,7 +402,7 @@
 
                 <div class="input-group">
                     <div class="label-row">
-                        <label>데이터 직접 붙여넣기</label>
+                        <label>출처 1 데이터 붙여넣기</label>
                         <button class="btn-paste" onclick="pasteTo('s1-paste', this)">
                             <i data-lucide="clipboard" style="width:12px; height:12px;"></i>붙여넣기
                         </button>
@@ -430,7 +438,7 @@
 
                 <div class="upload-area" onclick="getEl('s2-file').click()">
                     <i data-lucide="file-up" style="color: #d97706;"></i>
-                    <div class="upload-text">엑셀 파일 업로드</div>
+                    <div class="upload-text">출처 2 엑셀 업로드</div>
                     <div class="file-status-text" id="s2-file-status">(.xlsx, .xls)</div>
                     <input type="file" id="s2-file" accept=".xlsx, .xls" style="display:none;"
                         onchange="handleFile(event, 2)">
@@ -438,7 +446,7 @@
 
                 <div class="input-group" style="flex: 1;">
                     <div class="label-row">
-                        <label>데이터 직접 붙여넣기</label>
+                        <label>출처 2 데이터 붙여넣기</label>
                         <button class="btn-paste" onclick="pasteTo('s2-paste', this)">
                             <i data-lucide="clipboard" style="width:12px; height:12px;"></i>붙여넣기
                         </button>
@@ -474,7 +482,7 @@
 
                 <div class="upload-area" onclick="getEl('s3-file').click()">
                     <i data-lucide="file-up" style="color: #059669;"></i>
-                    <div class="upload-text">엑셀 파일 업로드</div>
+                    <div class="upload-text">출처 3 엑셀 업로드</div>
                     <div class="file-status-text" id="s3-file-status">(.xlsx, .xls)</div>
                     <input type="file" id="s3-file" accept=".xlsx, .xls" style="display:none;"
                         onchange="handleFile(event, 3)">
@@ -482,7 +490,7 @@
 
                 <div class="input-group" style="flex: 1;">
                     <div class="label-row">
-                        <label>데이터 직접 붙여넣기</label>
+                        <label>출처 3 데이터 붙여넣기</label>
                         <button class="btn-paste" onclick="pasteTo('s3-paste', this)">
                             <i data-lucide="clipboard" style="width:12px; height:12px;"></i>붙여넣기
                         </button>
@@ -514,6 +522,35 @@
                 <li><strong>절단 규칙</strong>: 5번째부터 나오는 하이픈(<strong>-</strong>) 이후 삭제 (중복 제거 포함)</li>
             </ul>
         </div>
+
+        <hr style="margin: 40px 0; border: none; border-top: 2px dashed #e2e8f0;">
+
+        <header>
+            <h1>모델명 & 제품명 간편 정리</h1>
+            <p>A열(모델명): 5번째 글자 이후 하이픈(-) 또는 마침표(.) 제거 | B열(제품명): 그대로 유지</p>
+        </header>
+
+        <div class="source-section" style="border-color: #ec4899; background: #fdf2f8; margin-bottom: 24px;">
+            <div class="source-header">
+                <div class="source-title" style="color: #be185d;">
+                    <i data-lucide="scissors"></i> 정리 데이터 입력 (A열:모델, B열:제품명)
+                </div>
+            </div>
+            <div class="input-group">
+                <div class="label-row">
+                    <label>모델명[Tab]제품명 형식으로 붙여넣으세요</label>
+                    <button class="btn-paste" onclick="pasteTo('clean-paste')">
+                        <i data-lucide="clipboard" style="width:12px; height:12px;"></i>붙여넣기
+                    </button>
+                </div>
+                <textarea id="clean-paste" placeholder="모델명	제품명&#10;LGE-ASDF-123	에어컨&#10;SAM-QWER-456	세탁기"
+                    style="height: 150px; border-color: #fbcfe8;"></textarea>
+            </div>
+            <button class="btn-process" onclick="processCleaning()"
+                style="background: #ec4899; box-shadow: 0 10px 15px -3px rgba(236, 72, 153, 0.3); margin-top: 10px;">
+                <i data-lucide="download"></i>정리 및 다운로드 (Excel)
+            </button>
+        </div>
     </div>
 
     <script>
@@ -526,7 +563,7 @@
             return res - 1;
         };
         const els = {
-            masterPaste: getEl('master-paste'),
+            masterPaste: getEl('master-paste'), masterFile: getEl('master-file'),
             s1Model: getEl('s1-model-col'), s1Id: getEl('s1-id-col'), s1Paste: getEl('s1-paste'),
             s2Model: getEl('s2-model-col'), s2Item: getEl('s2-item-col'), s2Id: getEl('s2-id-col'), s2Paste: getEl('s2-paste'),
             s3Model: getEl('s3-model-col'), s3Item: getEl('s3-item-col'), s3Id: getEl('s3-id-col'), s3Paste: getEl('s3-paste'),
@@ -534,7 +571,7 @@
             status: getEl('status-message'), outputName: getEl('output-filename')
         };
 
-        const files = { 1: null, 2: null, 3: null };
+        const files = { 0: null, 1: null, 2: null, 3: null };
 
         // UI Events
         const inputList = [els.masterPaste, els.s1Paste, els.s2Paste, els.s3Paste];
@@ -549,39 +586,51 @@
             const file = event.target.files[0];
             if (file) {
                 files[sourceNum] = file;
-                getEl(`s${sourceNum}-file-status`).textContent = file.name;
-                getEl(`s${sourceNum}-file-status`).style.color = '#10b981';
+                const statusEl = sourceNum === 0 ? getEl('master-file-status') : getEl(`s${sourceNum}-file-status`);
+                statusEl.textContent = file.name;
+                statusEl.style.color = '#10b981';
 
-                // 파일 데이터 읽어서 실시간 카운트 업데이트 (미리보기 성격)
+                // 파일 데이터 읽어서 실시간 카운트 업데이트
                 const data = await file.arrayBuffer();
                 const wb = XLSX.read(data, { type: 'array' });
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-                let modelCol = getEl(`s${sourceNum}-model-col`).value;
-                let mIdx = colToIdx(modelCol);
                 let models = new Set();
-
-                for (let i = 1; i < json.length; i++) {
-                    if (!json[i] || !json[i][mIdx]) continue;
-                    String(json[i][mIdx]).split(',').forEach(m => {
-                        const pm = processModelName(m);
-                        if (pm) models.add(pm);
-                    });
+                if (sourceNum === 0) {
+                    // 마스터 파일: 1열(A) 모델명, 2열(B) LV2로 가정
+                    for (let i = 0; i < json.length; i++) {
+                        if (json[i] && json[i][0]) {
+                            const pm = processModelName(json[i][0]);
+                            if (pm) models.add(pm);
+                        }
+                    }
+                    updateCountsExplicit(1, models.size);
+                } else {
+                    let modelCol = getEl(`s${sourceNum}-model-col`).value;
+                    let mIdx = colToIdx(modelCol);
+                    for (let i = 1; i < json.length; i++) {
+                        if (!json[i] || !json[i][mIdx]) continue;
+                        String(json[i][mIdx]).split(',').forEach(m => {
+                            const pm = processModelName(m);
+                            if (pm) models.add(pm);
+                        });
+                    }
+                    updateCountsExplicit(sourceNum, models.size);
                 }
-                updateCounts(sourceNum, models.size);
                 updateBtnState();
+                updateCounts();
             }
         }
 
         function updateCounts() {
-            // 출처 1 카운트 (마스터 + 붙여넣기)
+            // 출처 1 카운트 (마스터 텍스트 + 출처 1 텍스트)
             let s1Models = new Set();
             els.masterPaste.value.split(/[\n,]/).forEach(m => {
                 const pm = processModelName(m);
                 if (pm) s1Models.add(pm);
             });
-            // 붙여넣기 데이터에서도 추출 (간이)
+
             if (els.s1Paste.value.trim()) {
                 const rows = els.s1Paste.value.trim().split('\n');
                 let mIdx = colToIdx(els.s1Model.value);
@@ -593,9 +642,10 @@
                     });
                 });
             }
-            getEl('s1-count').textContent = `모델: ${s1Models.size}개`;
+            // 주의: 배지에는 파일 내용은 실시간 합산 안 됨 (handleFile에서 별도 처리 필요 시 로직 추가 권장)
+            getEl('s1-count').textContent = `모델: ${s1Models.size}개` + (files[0] || files[1] ? ' (+파일)' : '');
 
-            // 출처 2, 3은 붙여넣기 데이터 기준으로만 실시간 표시 (파일은 handleFile에서 처리됨)
+            // 출처 2, 3
             [2, 3].forEach(num => {
                 let pasteVal = els[`s${num}Paste`].value;
                 if (pasteVal.trim()) {
@@ -608,13 +658,13 @@
                             if (pm) models.add(pm);
                         });
                     });
-                    getEl(`s${num}-count`).textContent = `모델: ${models.size}개`;
+                    getEl(`s${num}-count`).textContent = `모델: ${models.size}개` + (files[num] ? ' (+파일)' : '');
                 }
             });
         }
 
         function updateCountsExplicit(num, count) {
-            getEl(`s${num}-count`).textContent = `모델: ${count}개`;
+            getEl(`s${num}-count`).textContent = `모델: ${count}개 (파일 로드됨)`;
         }
 
         async function pasteTo(targetId, btn) {
@@ -626,33 +676,32 @@
                 updateBtnState();
                 updateCounts();
             } catch (err) {
-                const originalContent = btn.innerHTML;
-                btn.innerHTML = '<i data-lucide="keyboard" style="width:12px; height:12px;"></i> Ctrl+V를 눌러주세요';
-                btn.style.background = '#ef4444'; // 경고 상징 빨간색
-                btn.style.width = 'auto';
-
-                getEl(targetId).focus(); // 입력창으로 포커스 이동
+                const originalContent = btn ? btn.innerHTML : '';
+                if (btn) {
+                    btn.innerHTML = '<i data-lucide="keyboard" style="width:12px; height:12px;"></i> Ctrl+V를 눌러주세요';
+                    btn.style.background = '#ef4444';
+                    btn.style.width = 'auto';
+                    setTimeout(() => {
+                        btn.innerHTML = originalContent;
+                        btn.style.background = '';
+                        lucide.createIcons();
+                    }, 3000);
+                }
+                getEl(targetId).focus();
                 lucide.createIcons();
-
-                setTimeout(() => {
-                    btn.innerHTML = originalContent;
-                    btn.style.background = '';
-                    lucide.createIcons();
-                }, 3000);
             }
         }
 
         function updateBtnState() {
             const hasData = els.masterPaste.value.trim() || els.s1Paste.value.trim() ||
                 els.s2Paste.value.trim() || els.s3Paste.value.trim() ||
-                files[1] || files[2] || files[3];
+                files[0] || files[1] || files[2] || files[3];
             els.btnProcess.disabled = !hasData;
         }
 
         function processModelName(model) {
             if (!model) return null;
             model = String(model).trim();
-            // 5번째 글자(인덱스 4)부터 나오는 '-' 찾기
             const dashPos = model.indexOf('-', 4);
             if (dashPos !== -1) model = model.substring(0, dashPos);
             const dotPos = model.indexOf('.');
@@ -696,20 +745,34 @@
                 let s1Results = [];
                 let s2Results = [];
                 let s3Results = [];
-                let masterModels = new Set();
+                let masterModels = new Map(); // Key: 모델명, Value: LV2
                 let s2ModelsSet = new Set();
                 let s3ModelsSet = new Set();
 
-                // 0. Process Model Master
+                // 0-1. Process Master File (files[0])
+                if (files[0]) {
+                    const data = await files[0].arrayBuffer();
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                    for (let i = 0; i < json.length; i++) {
+                        if (json[i] && json[i][0]) {
+                            const model = processModelName(json[i][0]);
+                            if (model) masterModels.set(model, json[i][1] || "");
+                        }
+                    }
+                }
+
+                // 0-2. Process Model Master Text
                 const masterText = els.masterPaste.value.trim();
                 if (masterText) {
-                    masterText.split(/[\n,]/).forEach(m => {
-                        const model = processModelName(m);
-                        if (model) masterModels.add(model);
+                    masterText.split('\n').forEach(line => {
+                        const cols = line.split('\t');
+                        const model = processModelName(cols[0]);
+                        if (model) masterModels.set(model, cols[1] || "");
                     });
                 }
 
-                // Helper to get index or -1
                 const getIdx = el => el && el.value.trim() ? colToIdx(el.value) : -1;
 
                 // 1. Process Source 1 (A, B)
@@ -734,7 +797,7 @@
                                     if (!seen.has(key)) {
                                         s1Results.push([model, iVal]);
                                         seen.add(key);
-                                        masterModels.add(model);
+                                        if (!masterModels.has(model)) masterModels.set(model, "");
                                     }
                                 }
                             });
@@ -747,7 +810,7 @@
                         if (!seen.has(`${p[0]}|${p[2]}`)) {
                             s1Results.push([p[0], p[2]]);
                             seen.add(`${p[0]}|${p[2]}`);
-                            masterModels.add(p[0]);
+                            if (!masterModels.has(p[0])) masterModels.set(p[0], "");
                         }
                     });
                 }
@@ -807,27 +870,25 @@
                 s3Results.forEach(r => s3ModelsSet.add(r[0]));
 
                 // 4. Prepare Final A-column List
-                const finalMasterList = Array.from(masterModels);
+                const finalMasterList = Array.from(masterModels.keys());
 
                 // Merge
-                const headers = ["product_model", "contents_id", "PDF 여부", "온라인 여부", "", "prod_model_cd", "item_id", "contents_id", "", "prod_model_cd", "item_id", "contents_id"];
+                const headers = ["product_model", "LV2", "contents_id", "PDF 여부", "온라인 여부", "", "prod_model_cd", "item_id", "contents_id", "유형", "", "prod_model_cd", "item_id", "contents_id", "유형"];
                 const finalRows = [headers];
                 const maxLen = Math.max(finalMasterList.length, s1Results.length, s2Results.length, s3Results.length);
 
                 for (let i = 0; i < maxLen; i++) {
-                    const row = Array(12).fill(""); // A ~ L (12개 컬럼)
-                    // A, B: 출처 1
+                    const row = Array(15).fill("");
                     if (finalMasterList[i]) {
                         const m = finalMasterList[i];
                         row[0] = m;
-                        if (s2ModelsSet.has(m)) row[2] = "PDF";
-                        if (s3ModelsSet.has(m)) row[3] = "온라인";
+                        row[1] = masterModels.get(m) || "";
+                        if (s2ModelsSet.has(m)) row[3] = "PDF";
+                        if (s3ModelsSet.has(m)) row[4] = "온라인";
                     }
-                    if (s1Results[i]) row[1] = s1Results[i][1];
-                    // F, G, H: 출처 2 (인덱스 5, 6, 7)
-                    if (s2Results[i]) { row[5] = s2Results[i][0]; row[6] = s2Results[i][1]; row[7] = s2Results[i][2]; }
-                    // J, K, L: 출처 3 (인덱스 9, 10, 11)
-                    if (s3Results[i]) { row[9] = s3Results[i][0]; row[10] = s3Results[i][1]; row[11] = s3Results[i][2]; }
+                    if (s1Results[i]) row[2] = s1Results[i][1];
+                    if (s2Results[i]) { row[6] = s2Results[i][0]; row[7] = s2Results[i][1]; row[8] = s2Results[i][2]; row[9] = "PDF"; }
+                    if (s3Results[i]) { row[11] = s3Results[i][0]; row[12] = s3Results[i][1]; row[13] = s3Results[i][2]; row[14] = "온라인"; }
                     finalRows.push(row);
                 }
 
@@ -854,7 +915,54 @@
                 els.btnText.textContent = '데이터 통합 및 다운로드';
             }
         };
+
+        async function processCleaning() {
+            const text = getEl('clean-paste').value.trim();
+            if (!text) {
+                alert('정리할 데이터를 입력해주세요.');
+                return;
+            }
+
+            const rows = text.split('\n');
+            const resultRows = [["모델명", "제품명"]];
+
+            rows.forEach(row => {
+                const cols = row.split('\t');
+                let model = cols[0] ? cols[0].trim() : "";
+                let productName = cols[1] ? cols[1].trim() : "";
+
+                if (model) {
+                    // 5번째 글자(index 4) 이후의 하이픈(-) 또는 마침표(.) 찾기
+                    const dashPos = model.indexOf('-', 4);
+                    const dotPos = model.indexOf('.');
+
+                    let cutPos = -1;
+                    if (dashPos !== -1 && dotPos !== -1) {
+                        cutPos = Math.min(dashPos, dotPos);
+                    } else if (dashPos !== -1) {
+                        cutPos = dashPos;
+                    } else if (dotPos !== -1) {
+                        cutPos = dotPos;
+                    }
+
+                    if (cutPos !== -1) {
+                        model = model.substring(0, cutPos);
+                    }
+                }
+                resultRows.push([model, productName]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(resultRows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Cleaned_Data");
+            XLSX.writeFile(wb, "model_product_cleaned.xlsx");
+        }
     </script>
+</body>
+
+</html>
+
+</script>
 </body>
 
 </html>
