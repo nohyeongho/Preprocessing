@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모델명 전처리 도구 (Excel Processor)</title>
+    <!-- SheetJS for Excel processing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .source-section {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .source-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 8px;
+            margin-bottom: 4px;
+        }
+
+        .col-settings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .input-group input,
+        .input-group textarea {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: #fdfdfd;
+        }
+
+        .input-group textarea {
+            height: 100px;
+            resize: none;
+            font-family: monospace;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fafafa;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: #f5f3ff;
+        }
+
+        .btn-process {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-process:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .status {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .status.success {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .rules-info {
+            margin-top: 24px;
+            font-size: 12px;
+            color: var(--text-light);
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        .rules-info ul {
+            list-style: none;
+            margin-top: 6px;
+        }
+
+        .rules-info li {
+            margin-bottom: 3px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .rules-info li::before {
+            content: "•";
+            color: var(--primary);
+        }
+
+        .loading-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Excel 모델명 전처리 도구 v2.1</h1>
+            <p>모델 마스터(A열) 및 다중 소스 통합 지원</p>
+        </header>
+
+        <!-- Model Master Section -->
+        <div class="source-section" style="margin-bottom: 24px; border-color: var(--primary); background: #f5f3ff;">
+            <div class="source-title" style="color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="database" style="width:18px; height:18px;"></i>
+                모델 마스터 (결과물 A열)
+            </div>
+            <div class="input-group">
+                <label>모델 마스터 리스트를 여기에 붙여넣으세요 (줄바꿈 또는 콤마 구분)</label>
+                <textarea id="master-paste" placeholder="MODEL-A123&#10;MODEL-B456..."
+                    style="height: 80px; border-color: #c7d2fe;"></textarea>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Source 1 -->
+            <div class="source-section">
+                <div class="source-title">데이터 출처 1 (기본)</div>
+                <div class="col-settings">
+                    <div class="input-group">
+                        <label>모델 컬럼 (A, J...)</label>
+                        <input type="text" id="s1-model-col" value="J">
+                    </div>
+                    <div class="input-group">
+                        <label>Contents ID 컬럼</label>
+                        <input type="text" id="s1-id-col" value="A">
+                    </div>
+                </div>
+                <div class="upload-area" id="drop-zone">
+                    <i data-lucide="file-up"
+                        style="width:24px; height:24px; color:var(--primary); margin-bottom:4px;"></i>
+                    <div style="font-size:13px; font-weight:600;">파일 업로드</div>
+                    <div id="file-status" style="font-size:11px; color:var(--text-light);">(.xlsx, .xls)</div>
+                    <input type="file" id="file-input" accept=".xlsx, .xls" style="display:none;">
+                </div>
+                <div class="input-group">
+                    <label>또는 여기에 직접 붙여넣기</label>
+                    <textarea id="s1-paste" placeholder="엑셀 복사본을 붙여넣으세요..."></textarea>
+                </div>
+            </div>
+
+            <!-- Source 2 -->
+            <div class="source-section">
+                <div class="source-title">데이터 출처 2 (추가)</div>
+                <div class="col-settings">
+                    <div class="input-group">
+                        <label>모델 컬럼 (A, J...)</label>
+                        <input type="text" id="s2-model-col" value="J">
+                    </div>
+                    <div class="input-group">
+                        <label>Contents ID 컬럼</label>
+                        <input type="text" id="s2-id-col" value="A">
+                    </div>
+                </div>
+                <div class="input-group" style="flex: 1;">
+                    <label>데이터 붙여넣기</label>
+                    <textarea id="s2-paste" placeholder="엑셀 복사본을 붙여넣으세요..." style="height: 198px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-group" style="margin-bottom: 20px;">
+            <label>저장할 파일명</label>
+            <input type="text" id="output-filename" placeholder="기본값: result.xlsx">
+        </div>
+
+        <button class="btn-process" id="btn-process" disabled>
+            <span class="loading-spinner" id="spinner"></span>
+            <span id="btn-text">데이터 통합 및 다운로드</span>
+        </button>
+
+        <div class="status" id="status-message"></div>
+
+        <div class="rules-info">
+            <strong>자동 처리 규칙:</strong>
+            <ul>
+                <li><strong>A열 (product_model)</strong>: <strong>모델 마스터</strong> + <strong>출처 1 모델</strong> 통합 배치</li>
+                <li><strong>B열 (contents_id)</strong>: 출처 1의 ID 매핑</li>
+                <li><strong>E, F열</strong>: 출처 2의 모델 및 ID 매핑</li>
+                <li><strong>절단 규칙</strong>: 5번째부터 나오는 하이픈(<strong>-</strong>) 이후 삭제 (중복 제거 포함)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const getEl = id => document.getElementById(id);
+        const els = {
+            masterPaste: getEl('master-paste'),
+            s1Model: getEl('s1-model-col'), s1Id: getEl('s1-id-col'), s1Paste: getEl('s1-paste'),
+            s2Model: getEl('s2-model-col'), s2Id: getEl('s2-id-col'), s2Paste: getEl('s2-paste'),
+            fileInput: getEl('file-input'), dropZone: getEl('drop-zone'), fileStatus: getEl('file-status'),
+            btnProcess: getEl('btn-process'), spinner: getEl('spinner'), btnText: getEl('btn-text'),
+            status: getEl('status-message'), outputName: getEl('output-filename')
+        };
+
+        let selectedFile = null;
+
+        function colToIdx(col) {
+            let res = 0; col = col.toUpperCase().trim();
+            for (let i = 0; i < col.length; i++) res = res * 26 + (col.charCodeAt(i) - 64);
+            return res - 1;
+        }
+
+        // UI Events
+        els.dropZone.onclick = () => els.fileInput.click();
+        els.fileInput.onchange = e => handleFile(e.target.files[0]);
+        els.masterPaste.oninput = els.s1Paste.oninput = els.s2Paste.oninput = () => updateBtnState();
+
+        function handleFile(file) {
+            if (file) {
+                selectedFile = file;
+                els.fileStatus.textContent = file.name;
+                els.fileStatus.style.color = '#10b981';
+                updateBtnState();
+            }
+        }
+
+        function updateBtnState() {
+            els.btnProcess.disabled = !(selectedFile || els.s1Paste.value.trim() || els.s2Paste.value.trim() || els.masterPaste.value.trim());
+        }
+
+        function processModelName(model) {
+            if (!model) return null;
+            model = String(model).trim();
+            // 5번째 글자(인덱스 4)부터 나오는 '-' 찾기
+            const dashPos = model.indexOf('-', 4);
+            if (dashPos !== -1) model = model.substring(0, dashPos);
+            const dotPos = model.indexOf('.');
+            if (dotPos !== -1) model = model.substring(0, dotPos);
+            return model.trim() || null;
+        }
+
+        function parseTSV(text, modelColIdx, idColIdx) {
+            const rows = text.trim().split(/\r?\n/);
+            const results = [];
+            const seen = new Set();
+
+            rows.forEach(row => {
+                const cols = row.split('\t');
+                const modelVal = modelColIdx >= 0 ? cols[modelColIdx] : null;
+                const idVal = idColIdx >= 0 ? cols[idColIdx] : "";
+
+                if (modelVal) {
+                    modelVal.split(',').forEach(m => {
+                        const model = processModelName(m);
+                        if (model) {
+                            const key = `${model}|${idVal}`;
+                            if (!seen.has(key)) {
+                                results.push([model, idVal]);
+                                seen.add(key);
+                            }
+                        }
+                    });
+                }
+            });
+            return results;
+        }
+
+        els.btnProcess.onclick = async () => {
+            try {
+                els.btnProcess.disabled = true;
+                els.spinner.style.display = 'inline-block';
+                els.btnText.textContent = '처리 중...';
+
+                let s1Results = [];
+                let s2Results = [];
+                let masterModels = new Set();
+
+                // 0. Process Model Master
+                const masterText = els.masterPaste.value.trim();
+                if (masterText) {
+                    masterText.split(/[\n,]/).forEach(m => {
+                        const model = processModelName(m);
+                        if (model) masterModels.add(model);
+                    });
+                }
+
+                // Helper to get index or -1
+                const getIdx = el => el.value.trim() ? colToIdx(el.value) : -1;
+
+                // 1. Process Source 1
+                const s1MCol = getIdx(els.s1Model);
+                const s1ICol = getIdx(els.s1Id);
+
+                if (selectedFile) {
+                    const data = await selectedFile.arrayBuffer();
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+                    const seen = new Set();
+                    for (let i = 1; i < json.length; i++) {
+                        if (!json[i]) continue;
+                        const mVal = s1MCol >= 0 ? json[i][s1MCol] : null;
+                        const iVal = s1ICol >= 0 ? (json[i][s1ICol] || "") : "";
+                        if (mVal) {
+                            String(mVal).split(',').forEach(m => {
+                                const model = processModelName(m);
+                                if (model) {
+                                    const key = `${model}|${iVal}`;
+                                    if (!seen.has(key)) {
+                                        s1Results.push([model, iVal]);
+                                        seen.add(key);
+                                        masterModels.add(model); // A열 구성을 위해 마스터 목록에 추가
+                                    }
+                                }
+                            });
+                        }
+                    }
+                } else if (els.s1Paste.value.trim()) {
+                    const parsed = parseTSV(els.s1Paste.value, s1MCol, s1ICol);
+                    const seen = new Set();
+                    parsed.forEach(p => {
+                        if (!seen.has(`${p[0]}|${p[1]}`)) {
+                            s1Results.push(p);
+                            seen.add(`${p[0]}|${p[1]}`);
+                            masterModels.add(p[0]);
+                        }
+                    });
+                }
+
+                // 2. Process Source 2
+                if (els.s2Paste.value.trim()) {
+                    s2Results = parseTSV(els.s2Paste.value, getIdx(els.s2Model), getIdx(els.s2Id));
+                }
+
+                // 3. Prepare Final A-column List (Sorted)
+                const finalMasterList = Array.from(masterModels);
+
+                // Merge
+                const finalRows = [["product_model", "contents_id", "", "", "prod_model_cd", "contents_id"]];
+                const maxLen = Math.max(finalMasterList.length, s1Results.length, s2Results.length);
+
+                for (let i = 0; i < maxLen; i++) {
+                    const row = ["", "", "", "", "", ""];
+                    // A열: 마스터 또는 통합 모델
+                    if (finalMasterList[i]) row[0] = finalMasterList[i];
+                    // B열: 출처 1의 ID 매핑 (모델 순서와 무관하게 출처 1 데이터 순서대로 나열됨)
+                    if (s1Results[i]) row[1] = s1Results[i][1];
+                    // E, F열: 출처 2의 데이터
+                    if (s2Results[i]) { row[4] = s2Results[i][0]; row[5] = s2Results[i][1]; }
+                    finalRows.push(row);
+                }
+
+                const resultWS = XLSX.utils.aoa_to_sheet(finalRows);
+                const newWB = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(newWB, resultWS, "PDF_SVC_MAN");
+
+                let name = els.outputName.value.trim() || 'result.xlsx';
+                if (!name.toLowerCase().endsWith('.xlsx')) name += '.xlsx';
+                XLSX.writeFile(newWB, name);
+
+                els.status.textContent = `${finalRows.length - 1}행 처리 완료! (A열 모델 수: ${finalMasterList.length})`;
+                els.status.className = 'status success';
+                els.status.style.display = 'block';
+
+            } catch (e) {
+                console.error(e);
+                els.status.textContent = '오류: ' + e.message;
+                els.status.className = 'status error';
+                els.status.style.display = 'block';
+            } finally {
+                els.btnProcess.disabled = false;
+                els.spinner.style.display = 'none';
+                els.btnText.textContent = '데이터 통합 및 다운로드';
+            }
+        };
+    </script>
+</body>
+
+</html>
