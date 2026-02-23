@@ -182,16 +182,18 @@ Qbot은 **입력 문장을 정규화 처리**하여 인식합니다.
 
 - **단일 문서 참조 시**:
   ```html
-  <span style="display:inline-block;vertical-align:middle;line-height:1">
-    <a name="{{document1}}" href="{{문서링크}}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;background:#fdfdfd;border:1px solid #eee;border-radius:50px;padding:1px 7px;font-size:10px;color:#B22222;text-decoration:none;font-style:italic;vertical-align:middle">[출처1_{Page번호}]</a>
+  <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
+    <a name="{{document1}}" href="{{문서링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_{Page번호}]</a>
   </span>
   ```
 
+
 - **여러 문서 동시 참조 시**:
-  ```html
-  <span style="display:inline-block;vertical-align:middle;line-height:1">
-  <a name="{{document1}}" href="{{문서1링크}}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;background:#fdfdfd;border:1px solid #eee;border-radius:50px;padding:1px 7px;font-size:10px;color:#B22222;text-decoration:none;font-style:italic;vertical-align:middle">[출처1_{Page번호}]</a>
-  <a name="{{document2}}" href="{{문서2링크}}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;background:#fdfdfd;border:1px solid #eee;border-radius:50px;padding:1px 7px;font-size:10px;color:#B22222;text-decoration:none;font-style:italic;vertical-align:middle">[출처2_{Page번호}]</a>
+   ```html
+    <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
+      <a name="{{document1}}" href="{{문서링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_{Page번호}]</a>
+   <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
+      <a name="{{document1}}" href="{{문서링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처2_{Page번호}]</a>
 </span>
   ```
 
@@ -307,17 +309,16 @@ Qbot은 **입력 문장을 정규화 처리**하여 인식합니다.
 
 ### {{이모지}} {{소제목}} <!-- 답변은 간결하게 작성 -->
 1. **{{title}}**
-   - {{  질문에 관련된 직접적인 답변, **표와 다른 관점**에서 핵심내용**을 150자 이내 설명, 인라인 출처 반드시 표기, 핵심 단어만 굵게 (**...**), 하세요체  }} <span style="display:inline-block;vertical-align:middle;line-height:1">
-    <a name="{{document1}}" href="{{문서1링크}}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;background:#fdfdfd;border:1px solid #eee;border-radius:50px;padding:1px 7px;font-size:10px;color:#B22222;text-decoration:none;font-style:italic;vertical-align:middle">[출처1_6P~9P]</a></span>
+   - {{  질문에 관련된 직접적인 답변, **표와 다른 관점**에서 핵심내용**을 150자 이내 설명, 인라인 출처 반드시 표기, 핵심 단어만 굵게 (**...**), 하세요체  }} <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;"><a name="{{document1}}" href="{{문서링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_6P~9P]</a></span>
 2. **{{title}}**
-   - {{  문제 해결 과정 및  체크방법등 **표와 다른 관점**에서 핵심내용을  150자 이내 설명, 인라인 출처 반드시 표기, 핵심 단어 만 굵게 (**...**) , 하세요체 }} <span style="display:inline-block;vertical-align:middle;line-height:1">
-  <a name="{{document1}}" href="{{문서1링크}}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;background:#fdfdfd;border:1px solid #eee;border-radius:50px;padding:1px 7px;font-size:10px;color:#B22222;text-decoration:none;font-style:italic;vertical-align:middle">[출처1_14P]</a>
-  <span style="display:inline-block;vertical-align:middle;line-height:1">
-  <a name="{{document2}}" href="{{문서2링크}}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;background:#fdfdfd;border:1px solid #eee;border-radius:50px;padding:1px 7px;font-size:10px;color:#B22222;text-decoration:none;font-style:italic;vertical-align:middle">[출처2_7P]</a></span>
+   - {{  문제 해결 과정 및  체크방법등 **표와 다른 관점**에서 핵심내용을  150자 이내 설명, 인라인 출처 반드시 표기, 핵심 단어 만 굵게 (**...**) , 하세요체 }} <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
+  <a name="{{document1}}" href="{{문서1링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_14P]</a>,
+  <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
+  <a name="{{document2}}" href="{{문서2링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처2_7P]</a></span>
 
 ### ⚠️ 추가 팁 및 유의사항  
-{{ 참고 내용(유상/무상 기준, 부품 정보, TEST MODE, LQC모드 등 모드진입방법) 1~2문장으로 요약, **인라인 출처 반드시 표기**, 핵심 단어 만 굵게 }}<span style="display:inline-block;vertical-align:middle;line-height:1">
-    <a name="{{document1}}" href="{{문서1링크}}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;background:#fdfdfd;border:1px solid #eee;border-radius:50px;padding:1px 7px;font-size:10px;color:#B22222;text-decoration:none;font-style:italic;vertical-align:middle">[출처1_6P~7P]</a></span>
+{{ 참고 내용(유상/무상 기준, 부품 정보, TEST MODE, LQC모드 등 모드진입방법) 1~2문장으로 요약, **인라인 출처 반드시 표기**, 핵심 단어 만 굵게 }}<span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
+    <a name="{{document1}}" href="{{문서1링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_6P~7P]</a></span>
 
 <br>
 ### <div style="display:none;">📚 출처 요약</div>
