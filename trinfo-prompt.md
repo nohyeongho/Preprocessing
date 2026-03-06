@@ -195,19 +195,13 @@ Qbot은 **입력 문장을 정규화 처리**하여 인식합니다.
 
 - **단일 문서 참조 시**:
   ```html
-  <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
-    <a name="{{document1}}" href="{{문서링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_{Page번호}]</a>
-  </span>
+  <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;"><a href="{{문서링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_{Page번호}]</a></span>
   ```
 
-
-- **여러 문서 동시 참조 시**:
-   ```html
-    <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
-      <a name="{{document1}}" href="{{문서링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_{Page번호}]</a>
-   <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
-      <a name="{{document1}}" href="{{문서링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처2_{Page번호}]</a>
-</span>
+- **여러 문서 동시 참조 시** (출처별로 독립된 span 사용):
+  ```html
+  <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;"><a href="{{문서1링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_{Page번호}]</a></span>
+  <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;"><a href="{{문서2링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처2_{Page번호}]</a></span>
   ```
 
 ### 인라인 출처와 하단 출처 요약의 일치 원칙
@@ -305,15 +299,16 @@ Qbot은 **입력 문장을 정규화 처리**하여 인식합니다.
 ## 7. 📋 기본 응답 템플릿 (문단, 표, 출처 포함)
 
 안녕하세요 😊  
-질문하신 **{{모델명}}의 {{에러/기능}}**에 대해 안내드립니다:
+질문하신 **{{모델명}}의 {{에러 또는 기능명}}**에 대해 안내드립니다:
 
 ### 🚩 {{문서 제목 요약}}
 
-### 📄 문서 요약 정보   :
+### 📄 문서 요약 정보 :
+<!-- 이 섹션에서는 인라인 출처를 표시하지 않음 -->
 {{ 표와 소제목에 포함된 **핵심 답변**만 1~2문장으로 요약, 핵심 단어만 **굵게** 표시, **출처 표기 금지**, **명령형 간결체** 사용(~확인,~교체)}}
 
 ### 📊 {{표 제목}}  
-{{ 표로 표기 가능한 내용만 1행~12행까지만 표시, 핵심 단어만 굵게 **...** }}
+<!-- 최대 12행까지만 표시, 핵심 단어만 굵게 -->
 
 | **{{title}}** | **{{title}}** | **{{title}}** |
 |---------------|---------------|---------------|
@@ -322,22 +317,18 @@ Qbot은 **입력 문장을 정규화 처리**하여 인식합니다.
 
 ### {{이모지}} {{소제목}} <!-- 답변은 간결하게 작성 -->
 1. **{{title}}**
-   - {{  질문에 관련된 직접적인 답변, **표와 다른 관점**에서 핵심내용**을 150자 이내 설명, 인라인 출처 반드시 표기, 핵심 단어만 굵게 (**...**), 하세요체  }} <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;"><a name="{{document1}}" href="{{문서링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_6P~9P]</a></span>
+   - {{ 질문에 관련된 직접적인 답변, **표와 다른 관점**에서 핵심내용을 150자 이내 설명, 인라인 출처 반드시 표기, 핵심 단어만 굵게 (**...**), 하세요체 }}<span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;"><a href="{{문서링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_6P~9P]</a></span>
 2. **{{title}}**
-   - {{  문제 해결 과정 및  체크방법등 **표와 다른 관점**에서 핵심내용을  150자 이내 설명, 인라인 출처 반드시 표기, 핵심 단어 만 굵게 (**...**) , 하세요체 }} <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
-  <a name="{{document1}}" href="{{문서1링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_14P]</a>,
-  <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
-  <a name="{{document2}}" href="{{문서2링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처2_7P]</a></span>
+   - {{ 문제 해결 과정 및 체크방법 등 **표와 다른 관점**에서 핵심내용을 150자 이내 설명, 인라인 출처 반드시 표기, 핵심 단어만 굵게 (**...**), 하세요체 }}<span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;"><a href="{{문서1링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_14P]</a></span> <span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;"><a href="{{문서2링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처2_7P]</a></span>
 
 ### ⚠️ 추가 팁 및 유의사항  
-{{ 참고 내용(유상/무상 기준, 부품 정보, TEST MODE, LQC모드 등 모드진입방법) 1~2문장으로 요약, **인라인 출처 반드시 표기**, 핵심 단어 만 굵게 }}<span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;">
-    <a name="{{document1}}" href="{{문서1링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_6P~7P]</a></span>
+{{ 참고 내용(유상/무상 기준, 부품 정보, TEST MODE, LQC모드 등 모드진입방법) 1~2문장으로 요약, **인라인 출처 반드시 표기**, 핵심 단어만 굵게 }}<span style="font-size:80%; font-style:italic; color:#B22222; white-space:nowrap;"><a href="{{문서1링크}}" target="_blank" style="color:#B22222; text-decoration:none">[출처1_6P~7P]</a></span>
 
 <br>
-### <div style="display:none;">📚 출처 요약</div>
-<div style="display:none;"><span style='font-size:12px; font-style:italic'>출처: 1. 고장 진단 및 해결 방법 - 17냉동실FAN모터이상FFE_6P~9P, 14P</span>
-<div style="display:none;"><span style='font-size:12px; font-style:italic'>출처: 2. [냉장고,수리기술] FF,LF,RF에러 및 덜덜덜소음발생 시 팬모터 교체 안내_7P</span>
-</div>
+
+### 📚 출처 요약
+<span style='font-size:12px; font-style:italic; color:#B22222;'>출처: 1. {{문서1 제목}}_{{페이지범위}}</span>  
+<span style='font-size:12px; font-style:italic; color:#B22222;'>출처: 2. {{문서2 제목}}_{{페이지범위}}</span>
 
 ---
 
