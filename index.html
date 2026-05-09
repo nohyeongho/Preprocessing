@@ -1,0 +1,3809 @@
+<html lang="ko" class="">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모델 및 어레이 정보 검색기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&amp;display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#A50034',
+                            light: '#C5003E',
+                            dark: '#820029',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .dark .glass-effect {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .custom-model-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 12px 0;
+            color: #333;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-top: 1px solid #f0f0f0;
+            margin-top: 8px;
+            transition: all 0.2s;
+        }
+
+        .dark .custom-model-trigger {
+            color: #e2e8f0;
+            border-top-color: #334155;
+        }
+
+        .custom-model-trigger:hover {
+            color: #A50034;
+        }
+
+        .custom-model-trigger .count {
+            margin-left: 4px;
+            font-weight: 700;
+            color: #A50034;
+        }
+
+        .custom-model-trigger::after {
+            content: 'keyboard_arrow_right';
+            font-family: 'Material Symbols Outlined';
+            margin-left: auto;
+            font-size: 18px;
+            color: #999;
+        }
+
+        .model-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+
+        .model-modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .model-modal-content {
+            background: #fff;
+            width: 92%;
+            max-width: 420px;
+            max-height: 80vh;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: translateY(16px);
+            transition: transform 0.25s;
+        }
+
+        .dark .model-modal-content {
+            background: #1e293b;
+            color: #f8fafc;
+        }
+
+        .model-modal-overlay.active .model-modal-content {
+            transform: translateY(0);
+        }
+
+        .model-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 20px 16px;
+            border-bottom: 1.5px solid #e5e7eb;
+            flex-shrink: 0;
+        }
+
+        .dark .model-modal-header {
+            border-bottom-color: #334155;
+        }
+
+        .model-modal-header h3 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #111;
+        }
+
+        .dark .model-modal-header h3 {
+            color: #f1f5f9;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            border-radius: 6px;
+            transition: color 0.2s;
+        }
+
+        .close-modal:hover {
+            color: #ef4444;
+        }
+
+        .model-search-wrap {
+            padding: 14px 16px 10px;
+            flex-shrink: 0;
+        }
+
+        .model-search-inner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            padding: 9px 12px;
+        }
+
+        .dark .model-search-inner {
+            background: #273549;
+        }
+
+        .model-search-inner input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            color: #374151;
+            outline: none;
+        }
+
+        .dark .model-search-inner input {
+            color: #e2e8f0;
+        }
+
+        .model-search-inner input::placeholder {
+            color: #9ca3af;
+        }
+
+        .model-search-inner .search-icon {
+            color: #9ca3af;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .model-count-bar {
+            padding: 4px 18px 8px;
+            font-size: 13px;
+            color: #6b7280;
+            flex-shrink: 0;
+        }
+
+        .dark .model-count-bar {
+            color: #94a3b8;
+        }
+
+        .model-list-container {
+            overflow-y: auto;
+            flex: 1;
+            padding: 0 12px 12px;
+        }
+
+        .model-list-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .model-list-container::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .dark .model-list-container::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+
+        .model-item {
+            padding: 7px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #1f2937;
+            margin-bottom: 4px;
+            background: #fff;
+            transition: background 0.15s, border-color 0.15s;
+            cursor: default;
+        }
+
+        .dark .model-item {
+            background: #273549;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        .model-item:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+
+        .dark .model-item:hover {
+            background: #1e293b;
+            border-color: #475569;
+        }
+
+        .loading-spinner-modal {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 0;
+            color: #A50034;
+        }
+
+        .error-message-modal {
+            padding: 20px;
+            background: #fff5f5;
+            color: #c53030;
+            border-radius: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 12px;
+        }
+
+        .dark .error-message-modal {
+            background: rgba(220, 38, 38, 0.1);
+            color: #f87171;
+        }
+
+        @media (max-width: 480px) {
+
+            .model-modal-overlay {
+                align-items: flex-end;
+            }
+
+            .model-modal-content {
+                width: 100%;
+                max-width: 100%;
+                max-height: 88vh;
+                border-radius: 20px 20px 0 0;
+                transform: translateY(100%);
+            }
+
+            .model-modal-overlay.active .model-modal-content {
+                transform: translateY(0);
+            }
+
+            .model-modal-header {
+                padding: 14px 16px 12px;
+            }
+
+            .model-modal-header h3 {
+                font-size: 15px;
+            }
+
+            .model-search-wrap {
+                padding: 10px 12px 8px;
+            }
+
+            .model-search-inner input {
+                font-size: 13px;
+            }
+
+            .model-count-bar {
+                padding: 2px 14px 6px;
+                font-size: 12px;
+            }
+
+            .model-list-container {
+                padding: 0 10px 10px;
+            }
+
+            .model-item {
+                padding: 6px 10px;
+                font-size: 11.5px;
+                margin-bottom: 3px;
+            }
+        }
+
+        /* 더보기 버튼 스타일 */
+        .load-more-btn {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 18px;
+            margin: 25px 0;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #f1f1f1;
+            border-radius: 16px;
+            color: #555;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            width: 100%;
+        }
+
+        .load-more-btn:hover {
+            background: #fff;
+            border-color: #a50034;
+            color: #a50034;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(165, 0, 52, 0.12);
+        }
+
+        .dark .load-more-btn {
+            background: rgba(30, 41, 59, 0.9);
+            border-color: #334155;
+            color: #cbd5e1;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .dark .load-more-btn:hover {
+            background: #1e293b;
+            border-color: #f43f5e;
+            color: #f43f5e;
+        }
+
+        .load-more-btn span {
+            font-size: 20px;
+        }
+    </style>
+    <style>
+        *,
+        ::before,
+        ::after {
+            --tw-border-spacing-x: 0;
+            --tw-border-spacing-y: 0;
+            --tw-translate-x: 0;
+            --tw-translate-y: 0;
+            --tw-rotate: 0;
+            --tw-skew-x: 0;
+            --tw-skew-y: 0;
+            --tw-scale-x: 1;
+            --tw-scale-y: 1;
+            --tw-pan-x: ;
+            --tw-pan-y: ;
+            --tw-pinch-zoom: ;
+            --tw-scroll-snap-strictness: proximity;
+            --tw-gradient-from-position: ;
+            --tw-gradient-via-position: ;
+            --tw-gradient-to-position: ;
+            --tw-ordinal: ;
+            --tw-slashed-zero: ;
+            --tw-numeric-figure: ;
+            --tw-numeric-spacing: ;
+            --tw-numeric-fraction: ;
+            --tw-ring-inset: ;
+            --tw-ring-offset-width: 0px;
+            --tw-ring-offset-color: #fff;
+            --tw-ring-color: rgb(59 130 246 / 0.5);
+            --tw-ring-offset-shadow: 0 0 #0000;
+            --tw-ring-shadow: 0 0 #0000;
+            --tw-shadow: 0 0 #0000;
+            --tw-shadow-colored: 0 0 #0000;
+            --tw-blur: ;
+            --tw-brightness: ;
+            --tw-contrast: ;
+            --tw-grayscale: ;
+            --tw-hue-rotate: ;
+            --tw-invert: ;
+            --tw-saturate: ;
+            --tw-sepia: ;
+            --tw-drop-shadow: ;
+            --tw-backdrop-blur: ;
+            --tw-backdrop-brightness: ;
+            --tw-backdrop-contrast: ;
+            --tw-backdrop-grayscale: ;
+            --tw-backdrop-hue-rotate: ;
+            --tw-backdrop-invert: ;
+            --tw-backdrop-opacity: ;
+            --tw-backdrop-saturate: ;
+            --tw-backdrop-sepia: ;
+            --tw-contain-size: ;
+            --tw-contain-layout: ;
+            --tw-contain-paint: ;
+            --tw-contain-style: ;
+        }
+
+        ::backdrop {
+            --tw-border-spacing-x: 0;
+            --tw-border-spacing-y: 0;
+            --tw-translate-x: 0;
+            --tw-translate-y: 0;
+            --tw-rotate: 0;
+            --tw-skew-x: 0;
+            --tw-skew-y: 0;
+            --tw-scale-x: 1;
+            --tw-scale-y: 1;
+            --tw-pan-x: ;
+            --tw-pan-y: ;
+            --tw-pinch-zoom: ;
+            --tw-scroll-snap-strictness: proximity;
+            --tw-gradient-from-position: ;
+            --tw-gradient-via-position: ;
+            --tw-gradient-to-position: ;
+            --tw-ordinal: ;
+            --tw-slashed-zero: ;
+            --tw-numeric-figure: ;
+            --tw-numeric-spacing: ;
+            --tw-numeric-fraction: ;
+            --tw-ring-inset: ;
+            --tw-ring-offset-width: 0px;
+            --tw-ring-offset-color: #fff;
+            --tw-ring-color: rgb(59 130 246 / 0.5);
+            --tw-ring-offset-shadow: 0 0 #0000;
+            --tw-ring-shadow: 0 0 #0000;
+            --tw-shadow: 0 0 #0000;
+            --tw-shadow-colored: 0 0 #0000;
+            --tw-blur: ;
+            --tw-brightness: ;
+            --tw-contrast: ;
+            --tw-grayscale: ;
+            --tw-hue-rotate: ;
+            --tw-invert: ;
+            --tw-saturate: ;
+            --tw-sepia: ;
+            --tw-drop-shadow: ;
+            --tw-backdrop-blur: ;
+            --tw-backdrop-brightness: ;
+            --tw-backdrop-contrast: ;
+            --tw-backdrop-grayscale: ;
+            --tw-backdrop-hue-rotate: ;
+            --tw-backdrop-invert: ;
+            --tw-backdrop-opacity: ;
+            --tw-backdrop-saturate: ;
+            --tw-backdrop-sepia: ;
+            --tw-contain-size: ;
+            --tw-contain-layout: ;
+            --tw-contain-paint: ;
+            --tw-contain-style: ;
+        }
+
+        *,
+        ::after,
+        ::before {
+            box-sizing: border-box;
+            border-width: 0;
+            border-style: solid;
+            border-color: #e5e7eb
+        }
+
+        ::after,
+        ::before {
+            --tw-content: ''
+        }
+
+        :host,
+        html {
+            line-height: 1.5;
+            -webkit-text-size-adjust: 100%;
+            -moz-tab-size: 4;
+            tab-size: 4;
+            font-family: Noto Sans KR, sans-serif;
+            font-feature-settings: normal;
+            font-variation-settings: normal;
+            -webkit-tap-highlight-color: transparent
+        }
+
+        body {
+            margin: 0;
+            line-height: inherit
+        }
+
+        hr {
+            height: 0;
+            color: inherit;
+            border-top-width: 1px
+        }
+
+        abbr:where([title]) {
+            -webkit-text-decoration: underline dotted;
+            text-decoration: underline dotted
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-size: inherit;
+            font-weight: inherit
+        }
+
+        a {
+            color: inherit;
+            text-decoration: inherit
+        }
+
+        b,
+        strong {
+            font-weight: bolder
+        }
+
+        code,
+        kbd,
+        pre,
+        samp {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-feature-settings: normal;
+            font-variation-settings: normal;
+            font-size: 1em
+        }
+
+        small {
+            font-size: 80%
+        }
+
+        sub,
+        sup {
+            font-size: 75%;
+            line-height: 0;
+            position: relative;
+            vertical-align: baseline
+        }
+
+        sub {
+            bottom: -.25em
+        }
+
+        sup {
+            top: -.5em
+        }
+
+        table {
+            text-indent: 0;
+            border-color: inherit;
+            border-collapse: collapse
+        }
+
+        button,
+        input,
+        optgroup,
+        select,
+        textarea {
+            font-family: inherit;
+            font-feature-settings: inherit;
+            font-variation-settings: inherit;
+            font-size: 100%;
+            font-weight: inherit;
+            line-height: inherit;
+            letter-spacing: inherit;
+            color: inherit;
+            margin: 0;
+            padding: 0
+        }
+
+        button,
+        select {
+            text-transform: none
+        }
+
+        button,
+        input:where([type=button]),
+        input:where([type=reset]),
+        input:where([type=submit]) {
+            -webkit-appearance: button;
+            background-color: transparent;
+            background-image: none
+        }
+
+        :-moz-focusring {
+            outline: auto
+        }
+
+        :-moz-ui-invalid {
+            box-shadow: none
+        }
+
+        progress {
+            vertical-align: baseline
+        }
+
+        ::-webkit-inner-spin-button,
+        ::-webkit-outer-spin-button {
+            height: auto
+        }
+
+        [type=search] {
+            -webkit-appearance: textfield;
+            outline-offset: -2px
+        }
+
+        ::-webkit-search-decoration {
+            -webkit-appearance: none
+        }
+
+        ::-webkit-file-upload-button {
+            -webkit-appearance: button;
+            font: inherit
+        }
+
+        summary {
+            display: list-item
+        }
+
+        blockquote,
+        dd,
+        dl,
+        figure,
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        hr,
+        p,
+        pre {
+            margin: 0
+        }
+
+        fieldset {
+            margin: 0;
+            padding: 0
+        }
+
+        legend {
+            padding: 0
+        }
+
+        menu,
+        ol,
+        ul {
+            list-style: none;
+            margin: 0;
+            padding: 0
+        }
+
+        dialog {
+            padding: 0
+        }
+
+        textarea {
+            resize: vertical
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            opacity: 1;
+            color: #9ca3af
+        }
+
+        [role=button],
+        button {
+            cursor: pointer
+        }
+
+        :disabled {
+            cursor: default
+        }
+
+        audio,
+        canvas,
+        embed,
+        iframe,
+        img,
+        object,
+        svg,
+        video {
+            display: block;
+            vertical-align: middle
+        }
+
+        img,
+        video {
+            max-width: 100%;
+            height: auto
+        }
+
+        [hidden]:where(:not([hidden=until-found])) {
+            display: none
+        }
+
+        .absolute {
+            position: absolute
+        }
+
+        .relative {
+            position: relative
+        }
+
+        .left-0 {
+            left: 0px
+        }
+
+        .left-5 {
+            left: 1.25rem
+        }
+
+        .right-0 {
+            right: 0px
+        }
+
+        .top-1\/2 {
+            top: 50%
+        }
+
+        .top-full {
+            top: 100%
+        }
+
+        .z-50 {
+            z-index: 50
+        }
+
+        .mx-auto {
+            margin-left: auto;
+            margin-right: auto
+        }
+
+        .mb-1 {
+            margin-bottom: 0.25rem
+        }
+
+        .mb-10 {
+            margin-bottom: 2.5rem
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem
+        }
+
+        .mb-3 {
+            margin-bottom: 0.75rem
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem
+        }
+
+        .mb-6 {
+            margin-bottom: 1.5rem
+        }
+
+        .mb-8 {
+            margin-bottom: 2rem
+        }
+
+        .mt-12 {
+            margin-top: 3rem
+        }
+
+        .mt-2 {
+            margin-top: 0.5rem
+        }
+
+        .flex {
+            display: flex
+        }
+
+        .inline-flex {
+            display: inline-flex
+        }
+
+        .grid {
+            display: grid
+        }
+
+        .hidden {
+            display: none
+        }
+
+        .h-10 {
+            height: 2.5rem
+        }
+
+        .h-12 {
+            height: 3rem
+        }
+
+        .h-16 {
+            height: 4rem
+        }
+
+        .max-h-64 {
+            max-height: 16rem
+        }
+
+        .min-h-screen {
+            min-height: 100vh
+        }
+
+        .w-10 {
+            width: 2.5rem
+        }
+
+        .w-12 {
+            width: 3rem
+        }
+
+        .w-16 {
+            width: 4rem
+        }
+
+        .w-full {
+            width: 100%
+        }
+
+        .max-w-2xl {
+            max-width: 42rem
+        }
+
+        .flex-1 {
+            flex: 1 1 0%
+        }
+
+        .-translate-y-1\/2 {
+            --tw-translate-y: -50%;
+            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))
+        }
+
+        .scale-95 {
+            --tw-scale-x: .95;
+            --tw-scale-y: .95;
+            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))
+        }
+
+        .scale-100 {
+            --tw-scale-x: 1;
+            --tw-scale-y: 1;
+            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))
+        }
+
+        .transform {
+            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))
+        }
+
+        .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr))
+        }
+
+        .flex-col {
+            flex-direction: column
+        }
+
+        .items-center {
+            align-items: center
+        }
+
+        .justify-center {
+            justify-content: center
+        }
+
+        .justify-between {
+            justify-content: space-between
+        }
+
+        .gap-2 {
+            gap: 0.5rem
+        }
+
+        .gap-3 {
+            gap: 0.75rem
+        }
+
+        .gap-6 {
+            gap: 1.5rem
+        }
+
+        .space-y-3> :not([hidden])~ :not([hidden]) {
+            --tw-space-y-reverse: 0;
+            margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
+            margin-bottom: calc(0.75rem * var(--tw-space-y-reverse))
+        }
+
+        .space-y-4> :not([hidden])~ :not([hidden]) {
+            --tw-space-y-reverse: 0;
+            margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+            margin-bottom: calc(1rem * var(--tw-space-y-reverse))
+        }
+
+        .overflow-hidden {
+            overflow: hidden
+        }
+
+        .overflow-y-auto {
+            overflow-y: auto
+        }
+
+        .whitespace-pre-line {
+            white-space: pre-line
+        }
+
+        .rounded-2xl {
+            border-radius: 1rem
+        }
+
+        .rounded-3xl {
+            border-radius: 1.5rem
+        }
+
+        .rounded-full {
+            border-radius: 9999px
+        }
+
+        .rounded-xl {
+            border-radius: 0.75rem
+        }
+
+        .border {
+            border-width: 1px
+        }
+
+        .border-2 {
+            border-width: 2px
+        }
+
+        .border-t {
+            border-top-width: 1px
+        }
+
+        .border-b {
+            border-bottom-width: 1px
+        }
+
+        .border-primary\/20 {
+            border-color: rgb(139 92 246 / 0.2)
+        }
+
+        .border-slate-100 {
+            --tw-border-opacity: 1;
+            border-color: rgb(241 245 249 / var(--tw-border-opacity, 1))
+        }
+
+        .border-slate-200 {
+            --tw-border-opacity: 1;
+            border-color: rgb(226 232 240 / var(--tw-border-opacity, 1))
+        }
+
+        .border-transparent {
+            border-color: transparent
+        }
+
+        .border-slate-50 {
+            --tw-border-opacity: 1;
+            border-color: rgb(248 250 252 / var(--tw-border-opacity, 1))
+        }
+
+        .border-primary\/30 {
+            border-color: rgb(139 92 246 / 0.3)
+        }
+
+        .bg-emerald-100 {
+            --tw-bg-opacity: 1;
+            background-color: rgb(209 250 229 / var(--tw-bg-opacity, 1))
+        }
+
+        .bg-primary\/10 {
+            background-color: rgb(139 92 246 / 0.1)
+        }
+
+        .bg-primary\/5 {
+            background-color: rgb(139 92 246 / 0.05)
+        }
+
+        .bg-red-50 {
+            --tw-bg-opacity: 1;
+            background-color: rgb(254 242 242 / var(--tw-bg-opacity, 1))
+        }
+
+        .bg-slate-200\/50 {
+            background-color: rgb(226 232 240 / 0.5)
+        }
+
+        .bg-slate-50 {
+            --tw-bg-opacity: 1;
+            background-color: rgb(248 250 252 / var(--tw-bg-opacity, 1))
+        }
+
+        .bg-white {
+            --tw-bg-opacity: 1;
+            background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1))
+        }
+
+        .p-1 {
+            padding: 0.25rem
+        }
+
+        .p-3 {
+            padding: 0.75rem
+        }
+
+        .p-6 {
+            padding: 1.5rem
+        }
+
+        .p-8 {
+            padding: 2rem
+        }
+
+        .px-3 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem
+        }
+
+        .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem
+        }
+
+        .py-1 {
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem
+        }
+
+        .py-12 {
+            padding-top: 3rem;
+            padding-bottom: 3rem
+        }
+
+        .py-3 {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem
+        }
+
+        .px-5 {
+            padding-left: 1.25rem;
+            padding-right: 1.25rem
+        }
+
+        .py-4 {
+            padding-top: 1rem;
+            padding-bottom: 1rem
+        }
+
+        .pl-14 {
+            padding-left: 3.5rem
+        }
+
+        .pr-6 {
+            padding-right: 1.5rem
+        }
+
+        .pt-8 {
+            padding-top: 2rem
+        }
+
+        .text-left {
+            text-align: left
+        }
+
+        .text-center {
+            text-align: center
+        }
+
+        .font-mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
+        }
+
+        .text-2xl {
+            font-size: 1.5rem;
+            line-height: 2rem
+        }
+
+        .text-3xl {
+            font-size: 1.875rem;
+            line-height: 2.25rem
+        }
+
+        .text-5xl {
+            font-size: 3rem;
+            line-height: 1
+        }
+
+        .text-\[20px\] {
+            font-size: 20px
+        }
+
+        .text-lg {
+            font-size: 1.125rem;
+            line-height: 1.75rem
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+            line-height: 1.25rem
+        }
+
+        .text-xs {
+            font-size: 0.75rem;
+            line-height: 1rem
+        }
+
+        .font-bold {
+            font-weight: 700
+        }
+
+        .font-medium {
+            font-weight: 500
+        }
+
+        .uppercase {
+            text-transform: uppercase
+        }
+
+        .leading-relaxed {
+            line-height: 1.625
+        }
+
+        .tracking-tight {
+            letter-spacing: -0.025em
+        }
+
+        .tracking-wider {
+            letter-spacing: 0.05em
+        }
+
+        .text-emerald-700 {
+            --tw-text-opacity: 1;
+            color: rgb(4 120 87 / var(--tw-text-opacity, 1))
+        }
+
+        .text-primary {
+            --tw-text-opacity: 1;
+            color: rgb(139 92 246 / var(--tw-text-opacity, 1))
+        }
+
+        .text-red-500 {
+            --tw-text-opacity: 1;
+            color: rgb(239 68 68 / var(--tw-text-opacity, 1))
+        }
+
+        .text-slate-400 {
+            --tw-text-opacity: 1;
+            color: rgb(148 163 184 / var(--tw-text-opacity, 1))
+        }
+
+        .text-slate-500 {
+            --tw-text-opacity: 1;
+            color: rgb(100 116 139 / var(--tw-text-opacity, 1))
+        }
+
+        .text-slate-600 {
+            --tw-text-opacity: 1;
+            color: rgb(71 85 105 / var(--tw-text-opacity, 1))
+        }
+
+        .text-slate-700 {
+            --tw-text-opacity: 1;
+            color: rgb(51 65 85 / var(--tw-text-opacity, 1))
+        }
+
+        .text-slate-900 {
+            --tw-text-opacity: 1;
+            color: rgb(15 23 42 / var(--tw-text-opacity, 1))
+        }
+
+        .placeholder-slate-400::placeholder {
+            --tw-placeholder-opacity: 1;
+            color: rgb(148 163 184 / var(--tw-placeholder-opacity, 1))
+        }
+
+        .opacity-0 {
+            opacity: 0
+        }
+
+        .opacity-100 {
+            opacity: 1
+        }
+
+        .shadow-2xl {
+            --tw-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+            --tw-shadow-colored: 0 25px 50px -12px var(--tw-shadow-color);
+            box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)
+        }
+
+        .shadow-sm {
+            --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color);
+            box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)
+        }
+
+        .shadow-xl {
+            --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
+            box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)
+        }
+
+        .outline-none {
+            outline: 2px solid transparent;
+            outline-offset: 2px
+        }
+
+        .transition-all {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms
+        }
+
+        .transition-colors {
+            transition-property: color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;
+            transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+            transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms
+        }
+
+        .duration-200 {
+            transition-duration: 200ms
+        }
+
+        .duration-300 {
+            transition-duration: 300ms
+        }
+
+        .last\:border-0:last-child {
+            border-width: 0px
+        }
+
+        .hover\:bg-slate-50:hover {
+            --tw-bg-opacity: 1;
+            background-color: rgb(248 250 252 / var(--tw-bg-opacity, 1))
+        }
+
+        .hover\:text-slate-700:hover {
+            --tw-text-opacity: 1;
+            color: rgb(51 65 85 / var(--tw-text-opacity, 1))
+        }
+
+        .focus\:border-primary:focus {
+            --tw-border-opacity: 1;
+            border-color: rgb(139 92 246 / var(--tw-border-opacity, 1))
+        }
+
+        .dark\:border-slate-700:is(.dark *) {
+            --tw-border-opacity: 1;
+            border-color: rgb(51 65 85 / var(--tw-border-opacity, 1))
+        }
+
+        .dark\:border-slate-800:is(.dark *) {
+            --tw-border-opacity: 1;
+            border-color: rgb(30 41 59 / var(--tw-border-opacity, 1))
+        }
+
+        .dark\:bg-emerald-900\/30:is(.dark *) {
+            background-color: rgb(6 78 59 / 0.3)
+        }
+
+        .dark\:bg-red-900\/20:is(.dark *) {
+            background-color: rgb(127 29 29 / 0.2)
+        }
+
+        .dark\:bg-slate-800:is(.dark *) {
+            --tw-bg-opacity: 1;
+            background-color: rgb(30 41 59 / var(--tw-bg-opacity, 1))
+        }
+
+        .dark\:bg-slate-800\/50:is(.dark *) {
+            background-color: rgb(30 41 59 / 0.5)
+        }
+
+        .dark\:bg-slate-900:is(.dark *) {
+            --tw-bg-opacity: 1;
+            background-color: rgb(15 23 42 / var(--tw-bg-opacity, 1))
+        }
+
+        .dark\:bg-slate-900\/50:is(.dark *) {
+            background-color: rgb(15 23 42 / 0.5)
+        }
+
+        .dark\:bg-slate-950:is(.dark *) {
+            --tw-bg-opacity: 1;
+            background-color: rgb(2 6 23 / var(--tw-bg-opacity, 1))
+        }
+
+        .dark\:text-emerald-400:is(.dark *) {
+            --tw-text-opacity: 1;
+            color: rgb(52 211 153 / var(--tw-text-opacity, 1))
+        }
+
+        .dark\:text-slate-300:is(.dark *) {
+            --tw-text-opacity: 1;
+            color: rgb(203 213 225 / var(--tw-text-opacity, 1))
+        }
+
+        .dark\:text-slate-400:is(.dark *) {
+            --tw-text-opacity: 1;
+            color: rgb(148 163 184 / var(--tw-text-opacity, 1))
+        }
+
+        .dark\:text-white:is(.dark *) {
+            --tw-text-opacity: 1;
+            color: rgb(255 255 255 / var(--tw-text-opacity, 1))
+        }
+
+        .dark\:shadow-slate-900\/50:is(.dark *) {
+            --tw-shadow-color: rgb(15 23 42 / 0.5);
+            --tw-shadow: var(--tw-shadow-colored)
+        }
+
+        .dark\:hover\:bg-slate-800:hover:is(.dark *) {
+            --tw-bg-opacity: 1;
+            background-color: rgb(30 41 59 / var(--tw-bg-opacity, 1))
+        }
+
+        .dark\:hover\:text-slate-200:hover:is(.dark *) {
+            --tw-text-opacity: 1;
+            color: rgb(226 232 240 / var(--tw-text-opacity, 1))
+        }
+    </style>
+    <style>
+        #expendables-app,
+        #exp-controls-wrapper {
+            --lg-red: #a50034;
+            --bg-gray: #f8f8f8;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --text-main: #222;
+            --text-sub: #666;
+            --border-light: #eee;
+            background-color: var(--bg-gray);
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        :root {
+            --primary-color: #e6007e;
+            --secondary-color: #f4f4f4;
+            --text-main-val: #333;
+            --text-muted: #666;
+            --bg-app: #ffffff;
+            --border-color: #ddd;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --header-height: 130px;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            padding-top: 10px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 15px 30px;
+        }
+
+        header {
+            text-align: center;
+            padding: 10px 0 15px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin: 0 0 15px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .tab-container {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 5px 2px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .tab-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab {
+            flex: 0 0 auto;
+            padding: 12px 20px;
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .tab.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 10px rgba(230, 0, 126, 0.2);
+        }
+
+        #resultCard,
+        #powerLayout,
+        #purifierLayout {
+            margin-top: 15px;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.3rem;
+            }
+
+            .container {
+                padding: 0 12px 80px;
+            }
+
+            .tab {
+                padding: 10px 16px;
+                font-size: 0.85rem;
+            }
+
+            #searchInput {
+                font-size: 1rem;
+                height: 50px;
+            }
+        }
+
+        #expendables-app header {
+            display: none;
+        }
+
+        body.scrolled #expendables-app header {
+            border-bottom: 1px solid #ddd;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        #expendables-app h1 {
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-start;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+
+        #exp-clearSearch {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #94a3b8;
+        }
+
+        #exp-clearSearch:hover {
+            color: #64748b;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 10000;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            display: none;
+            opacity: 0;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #toast.show {
+            display: flex;
+            opacity: 1;
+            bottom: 50px;
+        }
+
+        .hide-price-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-main);
+            cursor: pointer;
+            user-select: none;
+            background: #fff;
+            padding: 5px 12px;
+            border-radius: 30px;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--card-shadow);
+        }
+
+        .search-container {
+            flex: 0 1 450px;
+            min-width: 200px;
+            background: #fff;
+            padding: 4px 14px;
+            border-radius: 30px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--border-light);
+            position: relative;
+        }
+
+        #exp-searchInput {
+            flex: 1;
+            border: none;
+            padding: 4px;
+            font-size: 0.85rem;
+            outline: none;
+            background: transparent;
+        }
+
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 10px;
+            right: 10px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            z-index: 2000;
+            margin-top: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            border: 1px solid #eee;
+        }
+
+        .suggestion-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            text-align: left;
+        }
+
+        .suggestion-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .suggestion-name {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .suggestion-sku {
+            font-size: 0.7rem;
+            color: var(--lg-red);
+            font-family: monospace;
+        }
+
+        .category-select {
+            flex: 1;
+            min-width: 100px;
+            padding: 6px 8px;
+            border-radius: 30px;
+            border: 1px solid var(--border-light);
+            background: #fff;
+            font-size: 0.8rem;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 10px;
+        }
+
+        .category-select:disabled {
+            background-color: #f9f9f9;
+            color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .result-count {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        #exp-totalCount {
+            font-weight: bold;
+            color: var(--lg-red);
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: clamp(8px, 2vw, 12px);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .product-card {
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #f0f0f0;
+            height: auto;
+            min-height: 250px;
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--card-shadow);
+            border-color: var(--lg-red);
+        }
+
+        .img-container {
+            width: 100%;
+            height: 130px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            border-bottom: 1px solid #f9f9f9;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .img-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .info {
+            padding: 10px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .category {
+            font-size: 0.65rem;
+            color: var(--lg-red);
+            font-weight: bold;
+            margin-bottom: 3px;
+            opacity: 0.9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .name {
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-bottom: 6px;
+            line-height: 1.3;
+            height: 2rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .sku {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 4px;
+            cursor: pointer;
+            display: inline-block;
+            width: fit-content;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .sku:hover {
+            color: var(--lg-red);
+        }
+
+        .price-container {
+            margin-top: 10px;
+            padding-top: 4px;
+            border-top: 1px dotted #eee;
+        }
+
+        .price {
+            color: var(--lg-red);
+            font-weight: 800;
+            font-size: 0.85rem;
+        }
+
+        #expendables-app.hide-prices .price-container,
+        #exp-controls-wrapper.hide-prices .price-container {
+            display: none;
+        }
+
+        .price-warning {
+            color: var(--lg-red);
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-top: 2px;
+            display: none;
+        }
+
+        #expendables-app:not(.hide-prices) .price-warning,
+        #exp-controls-wrapper:not(.hide-prices) .price-warning {
+            display: block;
+        }
+
+        .highlight {
+            color: #ff4d4d;
+            font-weight: bold;
+        }
+
+        .index-badge {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: var(--lg-red);
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            z-index: 10;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #exp-noResult {
+            text-align: center;
+            width: 100%;
+            grid-column: 1 / -1;
+            padding: 80px 20px;
+            font-size: 1rem;
+            color: var(--text-sub);
+        }
+
+        #exp-imageModal {
+            display: none;
+            position: fixed;
+            z-index: 5000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #exp-modalImg {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 12px;
+            object-fit: contain;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #exp-modalImg.loaded {
+            opacity: 1;
+        }
+
+        #exp-modalLoader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--lg-red);
+            border-radius: 50%;
+            animation: exp-spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes exp-spin {
+            0% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        #expendables-app .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 5100;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #expendables-app .close-modal:hover {
+            background: #a50034;
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            #expendables-app .product-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 10px;
+            }
+
+            #expendables-app .product-card {
+                height: auto;
+                min-height: 240px;
+            }
+
+            #expendables-app .img-container {
+                height: 120px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #expendables-app .product-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            #expendables-app .product-card {
+                height: 300px;
+            }
+
+            #expendables-app .img-container {
+                height: 130px;
+            }
+
+            #expendables-app .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        #sticky-top-section {
+            position: sticky;
+            top: 0;
+            z-index: 1200;
+            background: #f4f4f4;
+            padding: 8px 0 4px;
+            transition: all 0.3s ease;
+        }
+
+        body.scrolled #sticky-top-section {
+            background: transparent;
+            box-shadow: none;
+            border-bottom: none;
+            padding-top: 12px;
+        }
+
+        body.scrolled #tabs-container {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(0, 0, 0, 0.05);
+        }
+    </style>
+
+</head>
+
+<body class="bg-[#f4f4f4] min-h-screen transition-colors duration-300 antialiased font-sans">
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6 relative">
+
+        <script>
+            function closeSearchApp() {
+                var ua = navigator.userAgent || navigator.vendor || window.opera;
+                if (/KAKAOTALK/i.test(ua)) {
+                    location.href = 'kakaotalk://inappbrowser/close';
+                    return;
+                } else if (/NAVER/i.test(ua)) {
+                    location.href = 'naversearchapp://inappbrowser/close';
+                    return;
+                }
+
+                window.opener = null;
+                window.open('', '_self').close();
+                window.close();
+
+                setTimeout(function () {
+                    window.history.back();
+                }, 100);
+
+                setTimeout(function () {
+                    document.body.innerHTML = `
+                            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background-color:#f4f4f4; font-family:'Noto Sans KR', sans-serif; text-align:center; padding:20px; animation: fadeIn 0.3s ease-out;">
+                                <div style="width: 80px; height: 80px; background-color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 24px;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:40px; height:40px; color:#94a3b8;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <h2 style="color:#0f172a; margin-bottom: 12px; font-size: 1.25rem; font-weight: 700;">검색기 창이 종료되었습니다</h2>
+                                <p style="color:#64748b; font-size: 0.9rem; line-height: 1.6; background-color: white; padding: 16px; border-radius: 12px; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);">
+                                    현재 사용 중이신 삼성 인터넷(또는 기타 모바일 브라우저)의 <br><strong style="color:#A50034; font-weight:600;">보안 정책</strong>으로 인해 자동으로 창을 닫을 수 없습니다.<br><br>
+                                    스마트폰의 창 닫기나 뒤로가기 버튼을<br>직접 눌러 화면을 닫아주세요.
+                                </p>
+                            </div>
+                        `;
+                }, 400);
+            }
+        </script>
+        <button onclick="closeSearchApp()"
+            class="fixed top-4 right-4 md:top-6 md:right-6 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-slate-200 text-slate-500 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-all z-[1300] group"
+            title="검색기 닫기">
+            <span
+                class="material-symbols-outlined text-2xl md:text-3xl transition-transform group-hover:rotate-90">close</span>
+        </button>
+
+        <div id="standard-app">
+            <div id="standard-header">
+                <header class="text-center mb-6 md:mb-10">
+                    <div
+                        class="inline-flex items-center justify-center w-16 h-16 md:w-24 md:h-24 bg-white rounded-full mb-6 md:mb-8 shadow-sm border border-slate-100">
+                        <span id="headerIcon"
+                            class="material-symbols-outlined text-primary text-3xl md:text-5xl">search_insights</span>
+                    </div>
+                    <h1 id="headerTitle"
+                        class="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 mb-3 md:mb-4 tracking-tight">
+                        어레이 정보 검색기</h1>
+                    <p id="headerDesc" class="text-slate-500 text-sm md:text-lg font-normal px-4">✨검색한 정보가 틀리면 꼭 수리자문으로
+                        알려주세요.</p>
+                </header>
+            </div>
+        </div>
+
+
+        <div id="sticky-top-section">
+            <div class="max-w-3xl mx-auto px-4 relative">
+                <div id="tabs-container"
+                    class="flex p-1 bg-slate-200/50 backdrop-blur-md rounded-2xl mb-2 border border-slate-200/30 shadow-sm">
+                    <button id="tabArray" onclick="switchMode('array')"
+                        class="flex-1 py-1.5 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-1 md:gap-2 bg-white text-primary shadow-lg shadow-primary/10 ring-1 ring-black/5">
+                        <span class="material-symbols-outlined text-[18px] md:text-[20px]">tv</span>
+                        어레이 검색
+                    </button>
+                    <button id="tabPower" onclick="switchMode('power')"
+                        class="flex-1 py-1.5 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-1 md:gap-2 text-slate-500 hover:text-slate-700">
+                        <span class="material-symbols-outlined text-[18px] md:text-[20px]">history_toggle_off</span>
+                        Power Off
+                    </button>
+                    <button id="tabPurifier" onclick="switchMode('purifier')"
+                        class="flex-1 py-1.5 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-1 md:gap-2 text-slate-500 hover:text-slate-700">
+                        <span class="material-symbols-outlined text-[18px] md:text-[20px]">water_drop</span>
+                        정수기 진입
+                    </button>
+                    <button id="tabExpendables" onclick="switchMode('expendables')"
+                        class="flex-1 py-1.5 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-1 md:gap-2 text-slate-500 hover:text-slate-700">
+                        <span class="material-symbols-outlined text-[18px] md:text-[20px]">inventory_2</span>
+                        소모품 검색
+                    </button>
+                </div>
+
+                <div id="exp-controls-wrapper" class="hidden pb-2">
+                    <div id="expendables-app-header">
+                        <div class="controls !mb-0">
+                            <div class="search-container !flex-[2]">
+                                <input type="text" id="exp-searchInput" placeholder="품명 또는 파트넘버 입력..."
+                                    autocomplete="off">
+                                <button id="exp-clearSearch">
+                                    <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+                                </button>
+                                <div id="exp-suggestions" class="suggestions"></div>
+                            </div>
+                            <select id="exp-cat1" class="category-select">
+                                <option value="">대분류</option>
+                            </select>
+                            <select id="exp-cat2" class="category-select" disabled>
+                                <option value="">중분류</option>
+                            </select>
+                            <select id="exp-cat3" class="category-select" disabled>
+                                <option value="">소분류</option>
+                            </select>
+                            <label class="hide-price-label !shadow-none !border-slate-200">
+                                <input type="checkbox" id="exp-hidePriceToggle"> 금액 숨기기
+                            </label>
+                        </div>
+                        <div class="result-count !mt-1 flex items-center justify-between">
+                            <div>
+                                총 <span id="exp-totalCount">0</span>개의 소모품이 검색되었습니다.
+                                <span id="exp-syncTime" class="text-[10px] text-slate-400 ml-1"></span>
+                            </div>
+                            <button id="exp-syncBtn" onclick="syncExpendablesFromLG()"
+                                class="flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold transition-all">
+                                <span class="material-symbols-outlined text-[14px]">sync</span>
+                                공식 사이트 동기화
+                            </button>
+                        </div>
+                        <div class="price-warning">✨실제 판매금액과 다를수 있습니다. 반드시 확인하세요</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-3xl mx-auto">
+
+            <div id="standard-content">
+                <div class="relative mb-6 md:mb-8 group max-w-2xl mx-auto px-1">
+                    <input type="text" id="searchInput" placeholder="모델명 입력 (예: 29MT48DF)"
+                        class="w-full h-14 md:h-16 pl-14 md:pl-16 pr-7 rounded-2xl bg-white border-2 border-transparent focus:border-primary/50 shadow-xl shadow-slate-200/50 text-sm md:text-base outline-none transition-all placeholder-slate-400 ring-4 ring-transparent focus:ring-primary/5">
+                    <span
+                        class="material-symbols-outlined absolute left-5 md:left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors text-[20px] md:text-[24px]">search</span>
+                    <button id="clearSearch"
+                        class="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200 transition-all hidden">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+
+                    <div id="suggestionList"
+                        class="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-800 z-50 overflow-hidden max-h-60 overflow-y-auto custom-scrollbar hidden">
+                        <button
+                            class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-primary text-[18px]">settings_power</span>
+                            </div>
+                            <span class="dark:text-white text-sm font-medium"><span
+                                    class="text-primary font-bold">OFF</span>_BY_CPUCMD</span>
+                        </button><button
+                            class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-primary text-[18px]">settings_power</span>
+                            </div>
+                            <span class="dark:text-white text-sm font-medium"><span
+                                    class="text-primary font-bold">OFF</span>_BY_ABN</span>
+                        </button><button
+                            class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-primary text-[18px]">settings_power</span>
+                            </div>
+                            <span class="dark:text-white text-sm font-medium"><span
+                                    class="text-primary font-bold">OFF</span>_BY_KEYTIMEOUT</span>
+                        </button><button
+                            class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-primary text-[18px]">settings_power</span>
+                            </div>
+                            <span class="dark:text-white text-sm font-medium"><span
+                                    class="text-primary font-bold">OFF</span>_BY_ACDET</span>
+                        </button><button
+                            class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-primary text-[18px]">settings_power</span>
+                            </div>
+                            <span class="dark:text-white text-sm font-medium"><span
+                                    class="text-primary font-bold">OFF</span>_BY_RESET</span>
+                        </button><button
+                            class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-primary text-[18px]">settings_power</span>
+                            </div>
+                            <span class="dark:text-white text-sm font-medium"><span
+                                    class="text-primary font-bold">OFF</span>_BY_5VMNT</span>
+                        </button><button
+                            class="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-primary text-[18px]">settings_power</span>
+                            </div>
+                            <span class="dark:text-white text-sm font-medium"><span
+                                    class="text-primary font-bold">OFF</span>_BY_NO_POLLING</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultArea" class="mt-8 space-y-3">
+            <div id="emptyState" class="text-center py-12 text-slate-400">
+                <span class="material-symbols-outlined text-5xl mb-2">find_in_page</span>
+                <p>🚩검색 후 우측 상단 "X" 버튼을 누르면 좋아요(👍)! 싫어요(👎)! 선택 버튼이 나타납니다. 꼭 의견을 남겨주세요.</p>
+            </div>종
+
+            <div id="resultCard"
+                class="bg-white dark:bg-slate-900 rounded-[16px] md:rounded-[24px] p-3 md:p-5 lg:p-8 shadow-2xl shadow-slate-200/50 dark:shadow-slate-950/50 transform transition-all duration-500 hidden scale-95 opacity-0 border border-slate-100 dark:border-slate-800">
+                <div
+                    class="flex flex-col md:flex-row md:items-center justify-between gap-2 md:gap-4 mb-4 md:mb-6 border-b border-slate-50 dark:border-slate-800 pb-3 md:pb-4">
+                    <div class="flex items-center gap-3 md:gap-4">
+                        <div
+                            class="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-primary/5 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary text-xl md:text-2xl">terminal</span>
+                        </div>
+                        <div>
+                            <h2 id="resultTitle"
+                                class="text-lg md:text-2xl font-bold text-slate-900 dark:text-white mb-0.5 leading-tight">
+                                OFF_BY_NO_POLLING</h2>
+                            <p class="text-slate-400 text-[10px] md:text-xs font-medium">검색된 정보입니다</p>
+                        </div>
+                    </div>
+                    <span id="resultBadge"
+                        class="inline-flex items-center px-2 py-0.5 md:px-3 md:py-1 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 text-[10px] md:text-xs font-bold rounded-full border border-emerald-100 dark:border-emerald-900/50 self-start md:self-auto">
+                        <span class="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                        검색 성공
+                    </span>
+                </div>
+
+                <div id="arrayLayout" class="hidden text-left">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                        <div class="space-y-2 md:space-y-4">
+                            <div class="flex items-center gap-2 mb-0.5 md:mb-1">
+                                <span class="w-1 h-3.5 md:w-1.5 md:h-5 bg-primary rounded-full"></span>
+                                <h3
+                                    class="text-sm md:text-base font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                                    Direct Array</h3>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+                                <div
+                                    class="info-item group flex justify-between items-center p-2.5 md:p-4 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300">
+                                    <div class="flex flex-col">
+                                        <span
+                                            class="text-[8px] md:text-[10px] font-bold text-slate-400 mb-0.5 tracking-wider uppercase">Array
+                                            1</span>
+                                        <span id="valArray1"
+                                            class="font-mono font-bold text-sm md:text-lg dark:text-white tracking-tight leading-none">AGF30007001</span>
+                                    </div>
+                                    <button onclick="copyToClipboard('valArray1', this)"
+                                        class="copy-btn p-1.5 md:p-2 hover:bg-primary/5 rounded-lg transition-all text-slate-300 hover:text-primary hidden">
+                                        <span
+                                            class="material-symbols-outlined text-[18px] md:text-[20px]">content_copy</span>
+                                    </button>
+                                </div>
+                                <div
+                                    class="info-item group flex justify-between items-center p-2.5 md:p-4 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300">
+                                    <div class="flex flex-col">
+                                        <span
+                                            class="text-[8px] md:text-[10px] font-bold text-slate-400 mb-0.5 tracking-wider uppercase">Array
+                                            2</span>
+                                        <span id="valArray2"
+                                            class="font-mono font-bold text-sm md:text-lg dark:text-white tracking-tight leading-none">-</span>
+                                    </div>
+                                    <button onclick="copyToClipboard('valArray2', this)"
+                                        class="copy-btn p-1.5 md:p-2 hover:bg-primary/5 rounded-lg transition-all text-slate-300 hover:text-primary hidden">
+                                        <span
+                                            class="material-symbols-outlined text-[18px] md:text-[20px]">content_copy</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2 md:space-y-4 mt-2 md:mt-0">
+                            <div class="flex items-center gap-2 mb-0.5 md:mb-1">
+                                <span class="w-1 h-3.5 md:w-1.5 md:h-5 bg-slate-300 rounded-full"></span>
+                                <h3
+                                    class="text-sm md:text-base font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                                    Edge Information</h3>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+                                <div
+                                    class="info-item group flex justify-between items-center p-2.5 md:p-4 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300">
+                                    <div class="flex flex-col">
+                                        <span
+                                            class="text-[8px] md:text-[10px] font-bold text-slate-400 mb-0.5 tracking-wider uppercase">Edge
+                                            1</span>
+                                        <span id="valEdge1"
+                                            class="font-mono font-bold text-sm md:text-lg dark:text-white tracking-tight leading-none">-</span>
+                                    </div>
+                                    <button onclick="copyToClipboard('valEdge1', this)"
+                                        class="copy-btn p-1.5 md:p-2 hover:bg-primary/5 rounded-lg transition-all text-slate-300 hover:text-primary hidden">
+                                        <span
+                                            class="material-symbols-outlined text-[18px] md:text-[20px]">content_copy</span>
+                                    </button>
+                                </div>
+                                <div
+                                    class="info-item group flex justify-between items-center p-2.5 md:p-4 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300">
+                                    <div class="flex flex-col">
+                                        <span
+                                            class="text-[8px] md:text-[10px] font-bold text-slate-400 mb-0.5 tracking-wider uppercase">Edge
+                                            2</span>
+                                        <span id="valEdge2"
+                                            class="font-mono font-bold text-sm md:text-lg dark:text-white tracking-tight leading-none">-</span>
+                                    </div>
+                                    <button onclick="copyToClipboard('valEdge2', this)"
+                                        class="copy-btn p-1.5 md:p-2 hover:bg-primary/5 rounded-lg transition-all text-slate-300 hover:text-primary hidden">
+                                        <span
+                                            class="material-symbols-outlined text-[18px] md:text-[20px]">content_copy</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-span-full mt-2 md:mt-4">
+                        <div class="flex items-center gap-2 mb-0.5 md:mb-1">
+                            <span class="w-1 h-3.5 md:w-1.5 md:h-5 bg-amber-400 rounded-full"></span>
+                            <h3
+                                class="text-sm md:text-base font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                                Light Guide Panel (도광판)</h3>
+                        </div>
+                        <div
+                            class="info-item group flex justify-between items-center p-2.5 md:p-4 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300">
+                            <div class="flex flex-col">
+                                <span
+                                    class="text-[8px] md:text-[10px] font-bold text-slate-400 mb-0.5 tracking-wider uppercase">도광판
+                                    Part No.</span>
+                                <span id="valDogwang"
+                                    class="font-mono font-bold text-sm md:text-lg dark:text-white tracking-tight leading-none">-</span>
+                            </div>
+                            <button onclick="copyToClipboard('valDogwang', this)"
+                                class="copy-btn p-1.5 md:p-2 hover:bg-primary/5 rounded-lg transition-all text-slate-300 hover:text-primary hidden">
+                                <span class="material-symbols-outlined text-[18px] md:text-[20px]">content_copy</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="powerLayout" class="hidden text-left">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <div class="space-y-2 md:space-y-4">
+                            <div class="flex items-center gap-2 mb-0.5 md:mb-1">
+                                <span class="w-1 h-3.5 md:w-1.5 md:h-5 bg-primary rounded-full"></span>
+                                <h3
+                                    class="text-sm md:text-base font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                                    Diagnosis Info</h3>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+                                <div
+                                    class="info-item group flex flex-col p-2.5 md:p-4 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm transition-all duration-300">
+                                    <span
+                                        class="text-[8px] md:text-[10px] font-bold text-slate-400 mb-0.5 tracking-wider uppercase">Product</span>
+                                    <span id="valProduct"
+                                        class="font-bold text-sm md:text-lg dark:text-white tracking-tight leading-none">-</span>
+                                </div>
+                                <div
+                                    class="info-item group flex flex-col p-2.5 md:p-4 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm transition-all duration-300">
+                                    <span
+                                        class="text-[8px] md:text-[10px] font-bold text-slate-400 mb-0.5 tracking-wider uppercase">Error
+                                        Code</span>
+                                    <span id="valErrorCode"
+                                        class="font-mono font-bold text-sm md:text-lg dark:text-white tracking-tight leading-none">-</span>
+                                </div>
+                            </div>
+                            <div
+                                class="info-item group flex justify-between items-center p-2.5 md:p-4 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm transition-all duration-300">
+                                <div class="flex flex-col">
+                                    <span
+                                        class="text-[8px] md:text-[10px] font-bold text-slate-400 mb-0.5 tracking-wider uppercase">Code
+                                        Name</span>
+                                    <span id="valCodeName"
+                                        class="font-mono font-bold text-sm md:text-lg dark:text-white tracking-tight leading-none">-</span>
+                                </div>
+                                <button onclick="copyToClipboard('valCodeName', this)"
+                                    class="copy-btn p-1.5 md:p-2 hover:bg-primary/5 rounded-lg transition-all text-slate-300 hover:text-primary hidden">
+                                    <span
+                                        class="material-symbols-outlined text-[18px] md:text-[20px]">content_copy</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-2 md:space-y-4">
+                            <div class="flex items-center gap-2 mb-0.5 md:mb-1">
+                                <span class="w-1 h-3.5 md:w-1.5 md:h-5 bg-slate-300 rounded-full"></span>
+                                <h3
+                                    class="text-sm md:text-base font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                                    Description</h3>
+                            </div>
+                            <div
+                                class="p-3 md:p-5 rounded-lg md:rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 min-h-[120px]">
+                                <p id="valDescription"
+                                    class="text-xs md:text-sm leading-relaxed text-slate-600 dark:text-slate-300 whitespace-pre-wrap font-medium">
+                                    ...</p>
+                            </div>
+                            <div class="mt-3">
+                                <div class="flex items-center gap-2 mb-0.5 md:mb-1">
+                                    <span class="w-1 h-3.5 md:w-1.5 md:h-5 bg-slate-300 rounded-full"></span>
+                                    <h3
+                                        class="text-sm md:text-base font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                                        Solution</h3>
+                                </div>
+                                <div
+                                    class="info-item group flex justify-between items-center p-3 md:p-4 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                    <div class="flex-1">
+                                        <p id="valSolution"
+                                            class="text-sm md:text-sm leading-relaxed text-slate-600 dark:text-slate-300 whitespace-pre-wrap font-medium">
+                                            -</p>
+                                    </div>
+                                    <button onclick="copyToClipboard('valSolution', this)"
+                                        class="copy-btn p-1.5 md:p-2 hover:bg-primary/5 rounded-lg transition-all text-slate-300 hover:text-primary hidden">
+                                        <span
+                                            class="material-symbols-outlined text-[18px] md:text-[20px]">content_copy</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="purifierLayout" class="hidden text-left">
+                    <div id="purifierContent" class="space-y-3 md:space-y-4">
+                    </div>
+                </div>
+            </div>
+
+            <div id="notFoundState" class="text-center py-12 hidden">
+                <div
+                    class="inline-flex items-center justify-center w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-full mb-3">
+                    <span class="material-symbols-outlined text-red-500">error</span>
+                </div>
+                <p class="text-slate-600 dark:text-slate-400 font-medium">해당 모델의 데이터를 찾을 수 없습니다.</p>
+            </div>
+        </div>
+
+        <footer id="standard-footer" class="mt-8 pt-6 border-t border-slate-200 flex justify-center items-center">
+            <p class="text-xs text-slate-400 font-medium tracking-tight">© 2026 Support Tool . Created by n.y.h. V2.2
+            </p>
+        </footer>
+
+        <div id="expendables-app" class="hidden">
+
+            <div class="product-grid" id="exp-productGrid">
+                <div id="exp-noResult" style="display: none;">검색 결과가 없습니다.</div>
+            </div>
+
+            <div id="exp-imageModal" class="modal" onclick="closeModalExp()">
+                <span class="close-modal material-symbols-outlined" onclick="closeModalExp()">close</span>
+                <div class="loader" id="exp-modalLoader"></div>
+                <img class="modal-content" id="exp-modalImg">
+            </div>
+        </div>
+    </div>
+    <script>
+        let MODEL_DATA = {};
+
+        let PURIFIER_DATA = [];
+        let POWER_OFF_DATA = [];
+
+        let currentMode = 'array';
+
+        const searchInput = document.getElementById('searchInput');
+        const suggestionList = document.getElementById('suggestionList');
+        const emptyState = document.getElementById('emptyState');
+        const notFoundState = document.getElementById('notFoundState');
+        const resultCard = document.getElementById('resultCard');
+
+        const arrayLayout = document.getElementById('arrayLayout');
+        const powerLayout = document.getElementById('powerLayout');
+        const purifierLayout = document.getElementById('purifierLayout');
+        const clearSearch = document.getElementById('clearSearch');
+
+        const resultTitle = document.getElementById('resultTitle');
+        const valArray1 = document.getElementById('valArray1');
+        const valArray2 = document.getElementById('valArray2');
+        const valEdge1 = document.getElementById('valEdge1');
+        const valEdge2 = document.getElementById('valEdge2');
+        const valDogwang = document.getElementById('valDogwang');
+        const valDescription = document.getElementById('valDescription');
+        const valSolution = document.getElementById('valSolution');
+        const valProduct = document.getElementById('valProduct');
+        const valErrorCode = document.getElementById('valErrorCode');
+        const valCodeName = document.getElementById('valCodeName');
+
+        function switchMode(mode) {
+            currentMode = mode;
+            const tabArray = document.getElementById('tabArray');
+            const tabPower = document.getElementById('tabPower');
+            const tabPurifier = document.getElementById('tabPurifier');
+            const tabExpendables = document.getElementById('tabExpendables');
+
+            const standardHeader = document.getElementById('standard-header');
+            const standardContent = document.getElementById('standard-content');
+            const resultArea = document.getElementById('resultArea');
+            const expendablesApp = document.getElementById('expendables-app');
+            const standardFooter = document.getElementById('standard-footer');
+            const expControlsWrapper = document.getElementById('exp-controls-wrapper');
+
+            const activeClass = "flex-1 py-1.5 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-1 md:gap-2 bg-white text-primary shadow-lg shadow-primary/10 ring-1 ring-black/5";
+            const inactiveClass = "flex-1 py-1.5 md:py-2.5 px-2 md:px-3 rounded-xl text-xs md:text-sm font-bold transition-all duration-300 flex items-center justify-center gap-1 md:gap-2 text-slate-500 hover:text-slate-700";
+
+            const headerIcon = document.getElementById('headerIcon');
+            const headerTitle = document.getElementById('headerTitle');
+            const headerDesc = document.getElementById('headerDesc');
+
+            if (mode === 'expendables') {
+                standardHeader.classList.add('hidden');
+                standardContent.classList.add('hidden');
+                resultArea.classList.add('hidden');
+                expendablesApp.classList.remove('hidden');
+                if (standardFooter) standardFooter.classList.add('hidden');
+                if (expControlsWrapper) expControlsWrapper.classList.remove('hidden');
+            } else {
+                standardHeader.classList.remove('hidden');
+                standardContent.classList.remove('hidden');
+                resultArea.classList.remove('hidden');
+                expendablesApp.classList.add('hidden');
+                if (standardFooter) standardFooter.classList.remove('hidden');
+                if (expControlsWrapper) expControlsWrapper.classList.add('hidden');
+            }
+
+            tabArray.className = mode === 'array' ? activeClass : inactiveClass;
+            tabPower.className = mode === 'power' ? activeClass : inactiveClass;
+            tabPurifier.className = mode === 'purifier' ? activeClass : inactiveClass;
+            tabExpendables.className = mode === 'expendables' ? activeClass : inactiveClass;
+
+            if (mode === 'array') {
+                headerIcon.textContent = "search_insights";
+                headerTitle.textContent = "어레이 정보 검색기";
+                headerDesc.textContent = "✨검색한 정보가 틀리면 꼭 수리자문으로 알려주세요.";
+                searchInput.placeholder = "모델명 입력 (예: 29MT48DF, 55UJ7240)";
+            } else if (mode === 'power') {
+                headerIcon.textContent = "history_toggle_off";
+                headerTitle.textContent = "Power Off History";
+                headerDesc.innerHTML = '✨검색한 정보가 틀리면 꼭 수리자문으로 알려주세요..<br><span style="color: #A50034; font-weight: bold; font-size: 0.85em; display: block; margin-top: 4px;">0A,0B,0C,0D,0E,0F,0G등 앞자리는 숫자"0" 입니다.</span>';
+                searchInput.placeholder = "코드명 입력 (예: OFF_BY_ABN, RESET)";
+            } else if (mode === 'purifier') {
+                headerIcon.textContent = "water_drop";
+                headerTitle.textContent = "정수기 진입 가이드";
+                headerDesc.textContent = "✨검색한 정보가 틀리면 꼭 수리자문으로 알려주세요.";
+                searchInput.placeholder = "모델명 입력 (예: WD100AW, WD102AW)";
+            }
+
+            searchInput.value = '';
+            const clearSearch = document.getElementById('clearSearch');
+            clearSearch.classList.add('hidden');
+            emptyState.innerHTML = `<span class="material-symbols-outlined text-5xl mb-2">find_in_page</span><p>🚩검색 후 우측 상단 "X" 버튼을 누르면 좋아요(👍)! 싫어요(👎)! 선택 버튼이 나타납니다. 꼭 의견을 남겨주세요.</p>`;
+            showState('empty');
+            hideSuggestions();
+
+            if (mode !== 'expendables') searchInput.focus();
+            else if (document.getElementById('exp-searchInput')) document.getElementById('exp-searchInput').focus();
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim().toUpperCase();
+
+            if (!query) {
+                showState('empty');
+                hideSuggestions();
+                clearSearch.classList.add('hidden');
+                return;
+            }
+
+            clearSearch.classList.remove('hidden');
+
+            let matches = [];
+            const cleanQuery = query.replace(/\s+/g, '');
+
+            if (currentMode === 'array') {
+                matches = Object.keys(MODEL_DATA).filter(key =>
+                    key.replace(/\s+/g, '').includes(cleanQuery)
+                ).slice(0, 15);
+            } else if (currentMode === 'power') {
+                matches = POWER_OFF_DATA.filter(item => {
+                    const cleanCodeName = item.codeName.replace(/\s+/g, '').toUpperCase();
+                    const cleanErrorCode = (item.errorCode || '').replace(/\s+/g, '').toUpperCase();
+                    return cleanCodeName.includes(cleanQuery) || cleanErrorCode.includes(cleanQuery);
+                }).slice(0, 10);
+            } else if (currentMode === 'purifier') {
+                matches = PURIFIER_DATA.filter(item =>
+                    item.model.replace(/\s+/g, '').toUpperCase().includes(cleanQuery)
+                ).slice(0, 10);
+            }
+
+            if (matches.length > 0) {
+                renderSuggestions(matches, query);
+
+                let exactMatch = null;
+                let title = '';
+
+                if (currentMode === 'array') {
+                    exactMatch = MODEL_DATA[query];
+                    title = query;
+                } else if (currentMode === 'power') {
+                    exactMatch = POWER_OFF_DATA.find(item => item.codeName === query || (item.errorCode && item.errorCode === query));
+                    title = exactMatch ? exactMatch.codeName : '';
+                } else if (currentMode === 'purifier') {
+                    exactMatch = PURIFIER_DATA.find(item => item.model.toUpperCase() === query);
+                    title = exactMatch ? exactMatch.model : '';
+                }
+
+                if (exactMatch) {
+                    updateResult(title, exactMatch);
+                    showState('result');
+                } else {
+                    showState('empty');
+                    emptyState.innerHTML = `<span class="material-symbols-outlined text-5xl mb-2">find_in_page</span><p>'${query}' 포함 항목을 추천 목록에서 선택하세요.</p>`;
+                }
+            } else {
+                hideSuggestions();
+                showState('notFound');
+            }
+        });
+
+        clearSearch.onclick = () => {
+            searchInput.value = '';
+            clearSearch.classList.add('hidden');
+            showState('empty');
+            hideSuggestions();
+            searchInput.focus();
+        };
+
+        function renderSuggestions(matches, query) {
+            suggestionList.innerHTML = '';
+            suggestionList.classList.remove('hidden');
+
+            matches.slice(0, 10).forEach(item => {
+                const button = document.createElement('button');
+                button.className = 'w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0';
+
+                let icon = 'tv';
+                if (currentMode === 'power') icon = 'settings_power';
+                if (currentMode === 'purifier') icon = 'water_drop';
+
+                let displayText = '';
+                let dataToUpdate = null;
+                let searchKey = '';
+
+                if (currentMode === 'array') {
+                    const key = item;
+                    const highlighted = key.replace(new RegExp(query, 'gi'), `<span class="text-primary font-bold">$&</span>`);
+                    displayText = `<span class="dark:text-white text-sm font-medium">${highlighted}</span>`;
+                    dataToUpdate = MODEL_DATA[key];
+                    searchKey = key;
+                } else if (currentMode === 'power') {
+                    const code = item.errorCode ? `[${item.errorCode}] ` : '';
+                    const fullText = `${code}${item.codeName}`;
+                    const highlighted = fullText.replace(new RegExp(query, 'gi'), `<span class="text-primary font-bold">$&</span>`);
+                    displayText = `<span class="dark:text-white text-sm font-medium">${highlighted}</span>`;
+                    dataToUpdate = item;
+                    searchKey = item.codeName;
+                } else if (currentMode === 'purifier') {
+                    const highlighted = item.model.replace(new RegExp(query, 'gi'), `<span class="text-primary font-bold">$&</span>`);
+                    displayText = `<span class="dark:text-white text-sm font-medium">${highlighted}</span>`;
+                    dataToUpdate = item;
+                    searchKey = item.model;
+                }
+
+                button.innerHTML = `
+                    <div class="w-7 h-7 rounded-full bg-primary/5 flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-primary text-[16px]">${icon}</span>
+                    </div>
+                    ${displayText}
+                `;
+
+                button.onclick = () => {
+                    searchInput.value = searchKey;
+                    updateResult(searchKey, dataToUpdate);
+                    showState('result');
+                    hideSuggestions();
+                };
+                suggestionList.appendChild(button);
+            });
+        }
+
+        function hideSuggestions() {
+            suggestionList.classList.add('hidden');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !suggestionList.contains(e.target)) {
+                hideSuggestions();
+            }
+        });
+
+        function showState(state) {
+            emptyState.classList.add('hidden');
+            notFoundState.classList.add('hidden');
+            resultCard.classList.add('hidden');
+            resultCard.classList.remove('scale-100', 'opacity-100');
+            resultCard.classList.add('scale-95', 'opacity-0');
+
+            if (state === 'empty') {
+                emptyState.classList.remove('hidden');
+            } else if (state === 'notFound') {
+                notFoundState.classList.remove('hidden');
+            } else if (state === 'result') {
+                resultCard.classList.remove('hidden');
+                setTimeout(() => {
+                    resultCard.classList.remove('scale-95', 'opacity-0');
+                    resultCard.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            }
+        }
+
+        function showToast(message = "복사하였습니다.") {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            const textEl = toast.querySelector('.text-sm');
+            if (textEl) textEl.textContent = message;
+
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function copyToClipboard(elementId, btn) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const text = el.textContent.trim();
+            if (text === '-' || !text) return;
+            copyTextDirectly(text, btn);
+        }
+
+        function copyExpSku(sku, btn) {
+            if (!sku) return;
+            copyTextDirectly(sku, btn);
+        }
+
+        function copyTextDirectly(text, btn) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    handleCopySuccess(btn, text);
+                }).catch(() => {
+                    fallbackCopyTextToClipboard(text, btn);
+                });
+            } else {
+                fallbackCopyTextToClipboard(text, btn);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text, btn) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            textArea.setAttribute('readonly', '');
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                if (document.execCommand('copy')) {
+                    handleCopySuccess(btn, text);
+                }
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function handleCopySuccess(btn, text) {
+            showToast(text ? "클립보드에 복사하였습니다: " + text : "클립보드에 복사하였습니다.");
+            if (!btn) return;
+
+            const icon = btn.querySelector('.material-symbols-outlined');
+            if (icon) {
+                const originalText = icon.textContent;
+                icon.textContent = 'check';
+                btn.classList.add('text-emerald-500');
+                setTimeout(() => {
+                    icon.textContent = originalText;
+                    btn.classList.remove('text-emerald-500');
+                }, 800);
+            } else {
+                const originalColor = btn.style.color;
+                btn.style.color = '#10b981';
+                btn.style.fontWeight = 'bold';
+                setTimeout(() => {
+                    btn.style.color = originalColor;
+                    btn.style.fontWeight = '';
+                }, 800);
+            }
+        }
+
+        function updateResult(title, data) {
+            resultTitle.textContent = title;
+
+            if (currentMode === 'array') {
+                arrayLayout.classList.remove('hidden');
+                powerLayout.classList.add('hidden');
+                purifierLayout.classList.add('hidden');
+
+                valArray1.textContent = data.array1 || '-';
+                valArray2.textContent = data.array2 || '-';
+                valEdge1.textContent = data.edge1 || '-';
+                valEdge2.textContent = data.edge2 || '-';
+                // 도광판 값 설정: 데이터에 '도광판' 키가 있으면 표시, 없으면 '-'
+                valDogwang.textContent = data['\uB3C4\uAD11\uD310'] || '-';
+
+                [valArray1, valArray2, valEdge1, valEdge2, valDogwang].forEach(el => {
+                    const btn = el.closest('.info-item').querySelector('.copy-btn');
+                    if (el.textContent !== '-' && el.textContent.trim() !== '') {
+                        el.classList.add('text-primary');
+                        el.closest('.info-item').classList.add('bg-primary/[0.03]', 'border-primary/20');
+                        btn.classList.remove('hidden');
+                    } else {
+                        el.classList.remove('text-primary');
+                        el.closest('.info-item').classList.remove('bg-primary/[0.03]', 'border-primary/20');
+                        btn.classList.add('hidden');
+                    }
+                });
+            } else if (currentMode === 'power') {
+                arrayLayout.classList.add('hidden');
+                powerLayout.classList.remove('hidden');
+                purifierLayout.classList.add('hidden');
+
+                // 파워 데이터 업데이트
+                valProduct.textContent = data.product || 'TV';
+                valErrorCode.textContent = data.errorCode || '-';
+                valCodeName.textContent = data.codeName || '-';
+                valDescription.textContent = data.description || '-';
+                valSolution.textContent = data.solution || '-';
+
+                // 강조 표시
+                [valProduct, valErrorCode, valCodeName, valSolution].forEach(el => {
+                    if (el.textContent !== '-' && el.textContent.trim() !== '') {
+                        el.classList.add('text-primary');
+                        el.closest('.info-item').classList.add('bg-primary/[0.03]', 'border-primary/20');
+                    } else {
+                        el.classList.remove('text-primary');
+                        el.closest('.info-item').classList.remove('bg-primary/[0.03]', 'border-primary/20');
+                    }
+                });
+
+                const codeCopyBtn = valCodeName.closest('.info-item').querySelector('.copy-btn');
+                if (valCodeName.textContent !== '-') codeCopyBtn.classList.remove('hidden');
+                else codeCopyBtn.classList.add('hidden');
+
+                // solution 복사 버튼 토글
+                const solCopyBtn = valSolution.closest('.info-item').querySelector('.copy-btn');
+                if (valSolution.textContent !== '-' && valSolution.textContent.trim() !== '') solCopyBtn.classList.remove('hidden');
+                else solCopyBtn.classList.add('hidden');
+            } else if (currentMode === 'purifier') {
+                arrayLayout.classList.add('hidden');
+                powerLayout.classList.add('hidden');
+                purifierLayout.classList.remove('hidden');
+
+                // 정수기 데이터 동적 생성
+                const purifierContent = document.getElementById('purifierContent');
+                purifierContent.innerHTML = '';
+
+                // 필드명 매핑 (한글 표시용)
+                const fieldLabels = {
+                    '테스트모드진입방법': '테스트 모드 진입 방법',
+                    'Comp강제기동모드진입방법': 'Comp(콤프) 강제 기동 모드 진입 방법',
+                    '배수모드진입방법': '배수 모드 진입 방법',
+                    '급수모드': '급수 모드',
+                    'IH출력보정': 'IH 출력 보정',
+                    '필터Reset': '필터 Reset',
+                    'SVCErrorDisplay': 'SVC Error Display',
+                    '살균모듈수명Reset': '살균 모듈 수명 Reset',
+                    '직수관살균시간설정': '직수관 살균 시간 설정',
+                    '살균모드': '살균 모드',
+                    '스마트진단': '스마트 진단',
+                    '필터플러싱모드': '필터 플러싱 모드'
+                };
+
+                // 값이 있는 필드만 표시
+                Object.keys(fieldLabels).forEach(key => {
+                    const value = data[key];
+                    if (value && value.trim() !== '') {
+                        const fieldDiv = document.createElement('div');
+                        fieldDiv.className = 'p-3 md:p-4 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300';
+                        fieldDiv.innerHTML = `
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex-1">
+                                    <span class="text-[10px] md:text-xs font-bold text-slate-400 mb-1 block tracking-wider uppercase">${fieldLabels[key]}</span>
+                                    <p class="text-sm md:text-base font-bold text-primary dark:text-primary-light leading-relaxed">${value}</p>
+                                </div>
+                                <button onclick="copyTextDirectly(\`${value.replace(/`/g, '\\`').replace(/\${/g, '\\${')}\`, this)" 
+                                        class="w-10 h-10 rounded-xl bg-primary/5 hover:bg-primary/10 flex items-center justify-center flex-shrink-0 transition-all duration-300 group"
+                                        title="복사">
+                                    <span class="material-symbols-outlined text-primary text-[20px] group-hover:scale-110 transition-transform">content_copy</span>
+                                </button>
+                            </div>
+                        `;
+                        purifierContent.appendChild(fieldDiv);
+                    }
+                });
+
+                // 값이 하나도 없는 경우
+                if (purifierContent.children.length === 0) {
+                    purifierContent.innerHTML = `
+                        <div class="text-center py-8 text-slate-400">
+                            <span class="material-symbols-outlined text-4xl mb-2">info</span>
+                            <p>이 모델에 대한 진입 가이드 정보가 없습니다.</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // --- 소모품 데이터 (공식 홈페이지에서 동기화하여 사용, 하드코딩 데이터 삭제됨) ---
+        let exp_products = [];
+        let exp_currentPage = 1;
+        let exp_totalFound = 0;
+        let exp_isSyncing = false;
+        let exp_isInitialized = false;
+        let exp_searchInput, exp_cat1, exp_cat2, exp_cat3, exp_productGrid, exp_totalCount, exp_noResult, exp_hidePriceToggle, exp_suggestions, exp_imageModal, exp_modalImg, exp_modalLoader, exp_clearSearch;
+
+        const processList = (obj) => {
+            // 1. JSON 형식 처리
+            if (!(obj instanceof XMLDocument)) {
+                const list = obj.data?.list || obj.list || [];
+                return list.map(item => {
+                    // ecData에서 카테고리 경로 추출
+                    let category = item.superCategoryName || "기타";
+                    try {
+                        if (item.ecData) {
+                            const ec = typeof item.ecData === 'string' ? JSON.parse(item.ecData) : item.ecData;
+                            // ec.category는 '식물생활가전 / 식물생활가전 / 패키지' 형식
+                            if (ec.category) category = ec.category;
+                        }
+                    } catch (e) { }
+
+                    return {
+                        modelId: item.modelId, // 사용 가능 모델 API에 필요
+                        id: item.modelId,      // 하환성 유지
+                        name: item.modelDisplayName || item.productName,
+                        sku: item.sku || item.modelName,
+                        price: (item.priceInfo && item.priceInfo.obsSellingPrice) ? parseInt(item.priceInfo.obsSellingPrice).toLocaleString() : (item.obsSalePrice || "0"),
+                        category: category,
+                        imageTags: item.mediumImageAddr ? (item.mediumImageAddr.startsWith('http') ? item.mediumImageAddr : 'https://www.lge.co.kr' + item.mediumImageAddr) : (item.imageUrl || "")
+                    };
+                });
+            }
+
+            // 2. XML 형식 처리 (데이터 구조에 따라 상세 선택)
+            const dataTag = obj.getElementsByTagName("data")[0];
+            if (!dataTag) return [];
+
+            const listContainer = dataTag.getElementsByTagName("list")[0];
+            if (!listContainer) return [];
+
+            const items = Array.from(listContainer.childNodes).filter(node => node.nodeName === "list");
+
+            const result = [];
+            for (let item of items) {
+                const getVal = (tag) => item.getElementsByTagName(tag)[0]?.textContent || "";
+
+                // 별도 태그 우선 사용, 없으면 ecData 파싱
+                const superCat = getVal("superCategoryName");
+                const catName = getVal("categoryName");
+                const subCat = getVal("subCategoryName");
+
+                let category = "기타";
+                if (superCat) {
+                    category = superCat;
+                    if (catName && catName !== superCat) category += " / " + catName;
+                    if (subCat) category += " / " + subCat;
+                } else {
+                    const ecDataStr = getVal("ecData");
+                    if (ecDataStr) { try { const ec = JSON.parse(ecDataStr); category = ec.category || "기타"; } catch (e) { } }
+                }
+
+                const priceInfo = item.getElementsByTagName("priceInfo")[0];
+                const price = priceInfo?.getElementsByTagName("obsSellingPrice")[0]?.textContent || "0";
+
+                result.push({
+                    modelId: getVal("modelId"), // 사용 가능 모델 API에 필요
+                    id: getVal("modelId"),      // 하환성 유지
+                    name: getVal("modelDisplayName"),
+                    sku: getVal("sku"),
+                    price: isNaN(parseInt(price)) ? "0" : parseInt(price).toLocaleString(),
+                    category: category.trim(),
+                    imageTags: getVal("mediumImageAddr") ? (getVal("mediumImageAddr").startsWith('http') ? getVal("mediumImageAddr") : 'https://www.lge.co.kr' + getVal("mediumImageAddr")) : ""
+                });
+            }
+            return result;
+        };
+
+        // LG 공식 홈페이지 데이터 동기화 함수 (증분 로드 방식으로 변경)
+        async function syncExpendablesFromLG(isFullSync = true) {
+            if (exp_isSyncing) return;
+
+            const syncBtn = document.getElementById('exp-syncBtn');
+            const originalBtnHtml = syncBtn.innerHTML;
+
+            exp_isSyncing = true;
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[16px]">sync</span> 동기화 중...';
+
+            try {
+                const pageSize = 300; // LG API size=500 설정 → 데이터 로드 안정성 강화 (총 5페이지)
+                let allFetchedProducts = [];
+                let totalFound = 0;
+
+                const getProxyUrl = (targetUrl, pIndex) => {
+                    const proxies = [
+                        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+                        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`
+                    ];
+                    return proxies[pIndex % proxies.length];
+                };
+
+                const fetchPage = async (proxyUrl) => {
+                    const res = await fetch(proxyUrl);
+                    if (!res.ok) throw new Error('Fail');
+                    let text = await res.text();
+
+                    // 프록시(allorigins 등)가 JSON으로 감싸서 보냈을 경우 처리
+                    try {
+                        const parsed = JSON.parse(text);
+                        if (parsed.contents) text = parsed.contents;
+                    } catch (e) { }
+
+                    // XML 파싱 시도
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(text, "text/xml");
+
+                    // XML 파싱 실패 시 (순수 JSON인 경우) JSON으로 반환
+                    if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            throw new Error('데이터 형식 오류');
+                        }
+                    }
+                    return xmlDoc;
+                };
+
+                // 1단계: 첫 페이지 로드 및 전체 개수 확인
+                const firstUrl = `https://apiv2.lge.co.kr/searchsvc/ajax/v1/search/disposable?keyword=${encodeURIComponent('소모품')}&category=&subCategory=&totalPrice=&sort=BEST&page=1&size=${pageSize}`;
+                const dataObj = await Promise.any([0, 1, 2].map(i => fetchPage(getProxyUrl(firstUrl, i))));
+
+                // 전체 개수 추출 및 업데이트
+                if (dataObj instanceof XMLDocument) {
+                    const countTags = ["totalCount", "totalcount", "totalCountInfo"];
+                    for (let tag of countTags) {
+                        const el = dataObj.getElementsByTagName(tag)[0];
+                        if (el) { totalFound = parseInt(el.textContent); break; }
+                    }
+                } else {
+                    totalFound = parseInt(dataObj.totalCount || dataObj.data?.totalCount || 0);
+                }
+                exp_totalFound = totalFound;
+
+                if (totalFound === 0) throw new Error('데이터 없음');
+
+                // 첫 페이지 즉시 반영
+                const firstPageList = processList(dataObj);
+                exp_products = firstPageList;
+                allFetchedProducts = [...firstPageList];
+
+                // UI 즉시 업데이트
+                initCatFilters();
+                filterProducts();
+                updateSyncTimeDisplay();
+
+                if (isFullSync && totalFound > pageSize) {
+                    // 2단계: 남은 모든 페이지를 한 번에 병렬 요청 (최속 방식)
+                    const maxItems = totalFound; // 실제 검색된 전체 개수 사용
+                    const totalPages = Math.ceil(maxItems / pageSize);
+
+                    const buildUrl = (page) =>
+                        `https://apiv2.lge.co.kr/searchsvc/ajax/v1/search/disposable?keyword=${encodeURIComponent('소모품')}&category=&subCategory=&totalPrice=&sort=BEST&page=${page}&size=${pageSize}`;
+
+                    // 전체 진행률 표시
+                    syncBtn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[16px]">sync</span> 전체 ${totalPages}페이지 로드 중...`;
+
+                    // 페이지 2 ~ 마지막을 모두 동시에 요청
+                    // 각 페이지는 순환 방식으로 다른 프록시를 우선 사용 (Rate Limit 분산)
+                    const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+                    const allResults = await Promise.allSettled(
+                        remainingPages.map((p, idx) => {
+                            const url = buildUrl(p);
+                            // 페이지마다 다른 프록시 우선 배정, 실패 시 나머지 시도
+                            const proxyOrder = [idx % 3, (idx + 1) % 3, (idx + 2) % 3];
+                            return Promise.any(proxyOrder.map(i => fetchPage(getProxyUrl(url, i))));
+                        })
+                    );
+
+                    for (const result of allResults) {
+                        if (result.status === 'fulfilled') {
+                            const list = processList(result.value);
+                            if (list.length > 0) allFetchedProducts = allFetchedProducts.concat(list);
+                        } else {
+                            console.warn('페이지 로드 실패:', result.reason);
+                        }
+                    }
+
+                    exp_products = allFetchedProducts;
+                    initCatFilters();
+                    filterProducts(false);
+                }
+
+                if (allFetchedProducts.length > 0) {
+                    syncBtn.innerHTML = `<span class="material-symbols-outlined text-[16px]">done</span> 완료 (${allFetchedProducts.length}개)`;
+
+                    localStorage.setItem('cached_expendables', JSON.stringify({
+                        date: new Date().getTime(),
+                        data: allFetchedProducts
+                    }));
+                    showToast(`${allFetchedProducts.length}개의 데이터 동기화 완료`);
+                }
+
+            } catch (err) {
+                console.error('Sync failed:', err);
+                showToast("동기화 실패. 네트워크를 확인하세요.");
+            } finally {
+                exp_isSyncing = false;
+                syncBtn.disabled = false;
+                if (!syncBtn.innerHTML.includes('완료')) syncBtn.innerHTML = originalBtnHtml;
+            }
+        }
+
+        // 특정 페이지 추가 로드 함수 (더보기 클릭 시)
+        async function loadNextPageExpendables() {
+            if (exp_isSyncing) return;
+            const nextPage = Math.floor(exp_products.length / 50) + 1;
+            const pageSize = 50;
+
+            if (exp_products.length >= exp_totalFound && exp_totalFound > 0) {
+                showToast("모든 데이터를 불러왔습니다.");
+                return;
+            }
+
+            const loadMoreBtn = document.getElementById('exp-loadMoreBtn');
+            const originalHtml = loadMoreBtn.innerHTML;
+            loadMoreBtn.disabled = true;
+            loadMoreBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm">sync</span> 로딩 중...';
+
+            try {
+                const nextUrl = `https://apiv2.lge.co.kr/searchsvc/ajax/v1/search/disposable?keyword=${encodeURIComponent('소모품')}&category=&subCategory=&totalPrice=&sort=BEST&page=${nextPage}&size=${pageSize}`;
+                const nextData = await Promise.any([0, 1, 2].map(i => fetchPage(getProxyUrl(nextUrl, i))));
+                const list = (typeof processList === 'function' ? processList(nextData) : []);
+
+                if (list.length > 0) {
+                    exp_products = exp_products.concat(list);
+                    initCatFilters();
+                    filterProducts();
+                    // 캐시 업데이트
+                    localStorage.setItem('cached_expendables', JSON.stringify({
+                        date: new Date().getTime(),
+                        data: exp_products
+                    }));
+                }
+            } catch (e) {
+                showToast("데이터를 가져오지 못했습니다.");
+            } finally {
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.innerHTML = originalHtml;
+            }
+        }
+
+
+
+        function updateSyncTimeDisplay() {
+            const cached = localStorage.getItem('cached_expendables');
+            const display = document.getElementById('exp-syncTime');
+            if (cached && display) {
+                const { date } = JSON.parse(cached);
+                const timeStr = new Date(date).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                display.textContent = `(최근 동기화: ${timeStr})`;
+            }
+        }
+
+        function initCatFilters() {
+            if (typeof exp_products !== 'undefined' && exp_products.length > 0) {
+                const currentVal1 = exp_cat1.value;
+
+                // 기존 옵션 제거 (첫번째 '대분류' 제외)
+                while (exp_cat1.options.length > 1) exp_cat1.remove(1);
+
+                const cat1List = [...new Set(exp_products.map(p => p.category.split(/\s*\/\s*/)[0]))].filter(Boolean).sort();
+                cat1List.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    exp_cat1.appendChild(opt);
+                });
+
+                // 기존 선택값 복구
+                if (currentVal1 && [...exp_cat1.options].some(o => o.value === currentVal1)) {
+                    exp_cat1.value = currentVal1;
+                }
+            }
+        }
+
+        function initExpendables() {
+            if (exp_isInitialized) return;
+
+            exp_searchInput = document.getElementById('exp-searchInput');
+            exp_clearSearch = document.getElementById('exp-clearSearch');
+            exp_cat1 = document.getElementById('exp-cat1');
+            exp_cat2 = document.getElementById('exp-cat2');
+            exp_cat3 = document.getElementById('exp-cat3');
+            exp_productGrid = document.getElementById('exp-productGrid');
+            exp_totalCount = document.getElementById('exp-totalCount');
+            exp_noResult = document.getElementById('exp-noResult');
+            exp_hidePriceToggle = document.getElementById('exp-hidePriceToggle');
+            exp_suggestions = document.getElementById('exp-suggestions');
+            exp_imageModal = document.getElementById('exp-imageModal');
+            exp_modalImg = document.getElementById('exp-modalImg');
+            exp_modalLoader = document.getElementById('exp-modalLoader');
+
+            // 로컬 캐시 데이터 확인
+            const cached = localStorage.getItem('cached_expendables');
+            const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24시간 캐시 만료
+
+            if (cached) {
+                try {
+                    const { data, date } = JSON.parse(cached);
+                    // 캐시 데이터 유효성 검사: modelId가 MD로 시작해야 함 (구버전 캐시 감지)
+                    const firstItem = data && data[0];
+                    const isOldFormat = firstItem && (!firstItem.modelId || !firstItem.modelId.startsWith('MD'));
+                    const isCacheExpired = !date || (Date.now() - date > CACHE_TTL_MS);
+
+                    if (isOldFormat) {
+                        // 구버전 캐시는 자동 삭제 후 재동기화
+                        console.warn('구버전 캐시 감지 — 자동으로 재동기화합니다.');
+                        localStorage.removeItem('cached_expendables');
+                        exp_productGrid.innerHTML = '<div class="loading-spinner-modal" style="padding:60px 0;"><span class="material-symbols-outlined animate-spin text-4xl mb-2">sync</span>데이터 업데이트 중 (첫 50개 즉시 표시됩니다)...</div>';
+                        syncExpendablesFromLG();
+                    } else if (isCacheExpired) {
+                        // 캐시 만료 시: 기존 데이터 먼저 표시 후 백그라운드에서 갱신
+                        console.log('캐시 만료 — 기존 데이터를 표시하며 백그라운드 갱신 시작');
+                        exp_products = data;
+                        exp_totalFound = data.length;
+                        initCatFilters();
+                        renderProducts(exp_products);
+                        updateSyncTimeDisplay();
+                        // 백그라운드 자동 갱신 (사용자가 기다리지 않도록)
+                        setTimeout(() => syncExpendablesFromLG(), 1000);
+                    } else {
+                        // 신선한 캐시 사용
+                        exp_products = data;
+                        exp_totalFound = data.length;
+                        initCatFilters();
+                        renderProducts(exp_products);
+                        updateSyncTimeDisplay();
+                    }
+                } catch (e) {
+                    // 캐시 파싱 오류 시 재동기화
+                    localStorage.removeItem('cached_expendables');
+                    syncExpendablesFromLG();
+                }
+            } else {
+                exp_productGrid.innerHTML = '<div class="loading-spinner-modal" style="padding:60px 0;"><span class="material-symbols-outlined animate-spin text-4xl mb-2">sync</span>공식 홈페이지에서 데이터를 불러오는 중...</div>';
+                syncExpendablesFromLG();
+            }
+
+            let debounceTimeout;
+            exp_searchInput.addEventListener('input', () => {
+                clearTimeout(debounceTimeout);
+                debounceTimeout = setTimeout(() => {
+                    filterProducts();
+                }, 300);
+            });
+
+            exp_clearSearch.addEventListener('click', () => {
+                exp_searchInput.value = '';
+                filterProducts();
+                exp_searchInput.focus();
+            });
+
+            exp_cat1.addEventListener('change', () => {
+                updateCat2();
+                filterProducts();
+            });
+            exp_cat2.addEventListener('change', () => {
+                updateCat3();
+                filterProducts();
+            });
+            exp_cat3.addEventListener('change', filterProducts);
+
+            exp_hidePriceToggle.addEventListener('change', () => {
+                const isChecked = exp_hidePriceToggle.checked;
+                document.getElementById('expendables-app').classList.toggle('hide-prices', isChecked);
+                document.getElementById('exp-controls-wrapper').classList.toggle('hide-prices', isChecked);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (exp_searchInput && !exp_searchInput.contains(e.target) && !exp_suggestions.contains(e.target)) {
+                    hideExpSuggestions();
+                }
+            });
+
+
+
+            exp_isInitialized = true;
+        }
+
+        function updateCat2() {
+            const val1 = exp_cat1.value;
+            exp_cat2.innerHTML = '<option value="">중분류</option>';
+            exp_cat3.innerHTML = '<option value="">소분류</option>';
+            exp_cat2.disabled = !val1;
+            exp_cat3.disabled = true;
+
+            if (val1) {
+                const subCats = [...new Set(exp_products
+                    .filter(p => p.category.split(/\s*\/\s*/)[0] === val1)
+                    .map(p => p.category.split(/\s*\/\s*/)[1])
+                    .filter(Boolean)
+                )].sort();
+
+                subCats.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    exp_cat2.appendChild(opt);
+                });
+            }
+        }
+
+        function updateCat3() {
+            const val1 = exp_cat1.value;
+            const val2 = exp_cat2.value;
+            exp_cat3.innerHTML = '<option value="">소분류</option>';
+            exp_cat3.disabled = !val2;
+
+            if (val1 && val2) {
+                const items = [...new Set(exp_products
+                    .filter(p => {
+                        const parts = p.category.split(/\s*\/\s*/);
+                        return parts[0] === val1 && parts[1] === val2;
+                    })
+                    .map(p => p.category.split(/\s*\/\s*/)[2])
+                    .filter(Boolean)
+                )].sort();
+
+                items.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    exp_cat3.appendChild(opt);
+                });
+            }
+        }
+
+        function renderProducts(filtered, query = "") {
+            if (filtered.length === 0) {
+                exp_productGrid.innerHTML = '';
+                exp_noResult.style.display = 'block';
+                exp_totalCount.textContent = 0;
+                return;
+            }
+
+            exp_noResult.style.display = 'none';
+            exp_totalCount.textContent = filtered.length;
+
+            const html = filtered.map((p, index) => `
+                <div class="product-card">
+                    <div class="img-container" onclick="openModalExp('${p.imageTags}')">
+                        <div class="index-badge">${index + 1}</div>
+                        <img src="${p.imageTags}" alt="${p.name}" loading="lazy">
+                    </div>
+                    <div class="info">
+                        <div class="category">${p.category.split(' / ').slice(1).join(' / ')}</div>
+                        <div class="name">${highlightTextExp(p.name, query)}</div>
+                        <div class="sku" onclick="copyExpSku('${p.sku}', this)">${p.sku}</div>
+                        <div class="price-container">
+                            <div class="price">${p.price}원</div>
+                        </div>
+                        <div class="custom-model-trigger" onclick="openModelModal('${p.id}', '${p.sku}')">
+                            사용 가능 모델
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            requestAnimationFrame(() => {
+                exp_productGrid.innerHTML = html;
+
+                // 더보기 버튼 추가 제어
+                const existingBtn = document.getElementById('exp-loadMoreBtn');
+                if (existingBtn) existingBtn.remove();
+
+                if (exp_products.length < exp_totalFound && query === "") {
+                    const loadMoreBtn = document.createElement('div');
+                    loadMoreBtn.id = 'exp-loadMoreBtn';
+                    loadMoreBtn.className = 'load-more-btn';
+                    const remaining = exp_totalFound - exp_products.length;
+                    loadMoreBtn.innerHTML = `더보기 (${remaining}) <span class="material-symbols-outlined">expand_more</span>`;
+                    loadMoreBtn.onclick = loadNextPageExpendables;
+                    exp_productGrid.appendChild(loadMoreBtn);
+                }
+            });
+        }
+
+        function filterProducts(shouldShowSuggestions = true) {
+            const query = exp_searchInput.value.toLowerCase().trim();
+            const val1 = exp_cat1.value;
+            const val2 = exp_cat2.value;
+            const val3 = exp_cat3.value;
+
+            const filtered = exp_products.filter(p => {
+                const matchesQuery = p.name.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query);
+
+                const parts = p.category.split(/\s*\/\s*/);
+                const matchesCat1 = !val1 || parts[0] === val1;
+                const matchesCat2 = !val2 || parts[1] === val2;
+                const matchesCat3 = !val3 || parts[2] === val3;
+
+                return matchesQuery && matchesCat1 && matchesCat2 && matchesCat3;
+            });
+
+            renderProducts(filtered, query);
+            if (shouldShowSuggestions && query.length >= 2) showExpSuggestions(query);
+            else hideExpSuggestions();
+
+            if (exp_clearSearch) {
+                exp_clearSearch.style.display = query.length > 0 ? 'block' : 'none';
+            }
+        }
+
+        function showExpSuggestions(query) {
+            const matches = exp_products.filter(p =>
+                p.name.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query)
+            ).slice(0, 10);
+
+            if (matches.length > 0) {
+                exp_suggestions.innerHTML = matches.map(p => `
+                    <div class="suggestion-item" onclick="selectExpSuggestion('${p.sku}')">
+                        <div class="suggestion-name">${highlightTextExp(p.name, query)}</div>
+                        <div class="suggestion-sku">${p.sku}</div>
+                    </div>
+                `).join('');
+                exp_suggestions.style.display = 'block';
+            } else {
+                hideExpSuggestions();
+            }
+        }
+
+        function hideExpSuggestions() {
+            exp_suggestions.style.display = 'none';
+        }
+
+        function selectExpSuggestion(sku) {
+            exp_searchInput.value = sku;
+            filterProducts(false);
+        }
+
+        function highlightTextExp(text, query) {
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+
+        function openModalExp(url) {
+            exp_imageModal.style.display = 'flex';
+            exp_modalImg.src = '';
+            exp_modalImg.classList.remove('loaded');
+            exp_modalLoader.style.display = 'block';
+
+            const img = new Image();
+            img.onload = function () {
+                exp_modalImg.src = url;
+                exp_modalImg.classList.add('loaded');
+                exp_modalLoader.style.display = 'none';
+            };
+            img.src = url;
+        }
+
+        function closeModalExp() {
+            exp_imageModal.style.display = 'none';
+        }
+
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 10) document.body.classList.add('scrolled');
+            else document.body.classList.remove('scrolled');
+        });
+
+        function initModelModal() {
+            const modalHtml = `
+                <div id="modelModal" class="model-modal-overlay">
+                    <div class="model-modal-content">
+                        <!-- 헤더: 제목 + 닫기 버튼 -->
+                        <div class="model-modal-header">
+                            <h3>사용 가능한 모델</h3>
+                            <button class="close-modal" onclick="closeModelModal()">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <!-- 검색창 -->
+                        <div class="model-search-wrap">
+                            <div class="model-search-inner">
+                                <input type="text" id="modelSearchInput" placeholder="제품 모델명(코드)을 입력하세요" oninput="filterModelList(this.value)" />
+                                <span class="material-symbols-outlined search-icon">search</span>
+                            </div>
+                        </div>
+                        <!-- 총 N개 카운트 -->
+                        <div class="model-count-bar" id="modelCountBar"></div>
+                        <!-- 모델 목록 -->
+                        <div id="modalBody" class="model-list-container">
+                            <div class="loading-spinner-modal">데이터를 불러오는 중...</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            const modal = document.getElementById('modelModal');
+            window.onclick = (e) => { if (e.target == modal) closeModelModal(); };
+        }
+
+        const COMPATIBLE_MODELS_CACHE = new Map();
+
+        window.openModelModal = async function (modelId, sku) {
+            const modal = document.getElementById('modelModal');
+            const modalBody = document.getElementById('modalBody');
+
+            modal.classList.add('active');
+            modalBody.innerHTML = '<div class="loading-spinner-modal"><span class="material-symbols-outlined animate-spin text-4xl mb-2">refresh</span>데이터를 불러오는 중...</div>';
+
+            // 캐시에 있으면 즉시 반환
+            if (COMPATIBLE_MODELS_CACHE.has(modelId)) {
+                renderCompatibleModels(COMPATIBLE_MODELS_CACHE.get(modelId));
+                return;
+            }
+
+            const targetUrl = `https://apiv2.lge.co.kr/ownsvc/ajax/v1/compatible/models?modelId=${modelId}`;
+
+            // 타임아웃이 있는 fetch + 파싱 래퍼 (5초로 단축)
+            const fetchAndParse = async (url, timeoutMs = 5000) => {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), timeoutMs);
+                try {
+                    const res = await fetch(url, { signal: controller.signal });
+                    clearTimeout(timer);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const text = await res.text();
+                    if (!text || !text.trim()) throw new Error('빈 응답');
+                    const parsed = JSON.parse(text);
+                    // allorigins 프록시는 { contents: "..." } 형식으로 감쌈
+                    const data = parsed.contents
+                        ? (typeof parsed.contents === 'string' ? JSON.parse(parsed.contents) : parsed.contents)
+                        : parsed;
+                    const list = data?.data?.compatibleModel;
+                    if (!Array.isArray(list) || list.length === 0) throw new Error('모델 목록 없음');
+                    return list;
+                } finally {
+                    clearTimeout(timer);
+                }
+            };
+
+            // 모든 URL을 동시에 요청 — 가장 먼저 성공한 응답 사용
+            // 순차 방식(최악 36초) → 병렬 방식(실질 1~3초)
+            const attempts = [
+                targetUrl,  // 직접 호출 (CORS 허용 환경에서 가장 빠름)
+                `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+                `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+            ];
+
+            let modelList = null;
+            try {
+                modelList = await Promise.any(attempts.map(url => fetchAndParse(url)));
+            } catch (e) {
+                console.warn('모든 시도 실패:', e);
+            }
+
+            if (modelList) {
+                COMPATIBLE_MODELS_CACHE.set(modelId, modelList);
+                renderCompatibleModels(modelList);
+            } else {
+                modalBody.innerHTML = `
+                    <div class="error-message-modal">
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-red-500 mt-0.5">error</span>
+                            <div>
+                                <strong class="block mb-1 text-sm text-red-600">데이터 로드 실패</strong>
+                                <p class="text-[11px] leading-relaxed text-gray-500 mb-3">
+                                    LG 서버의 보안 정책으로 외부 접근이 차단되었습니다.<br>
+                                    공식 사이트에서 직접 확인하세요.
+                                </p>
+                                <a href="https://www.lge.co.kr/care-accessories/search?keyword=${sku}" target="_blank" 
+                                   class="inline-flex items-center gap-1 text-primary text-xs font-bold hover:underline">
+                                    공식 사이트에서 직접 확인하기
+                                    <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                                </a>
+                                <button onclick="openModelModal('${modelId}', '${sku}')" class="mt-3 block text-[11px] text-blue-500 underline">다시 시도하기</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        let _allModelList = [];
+
+        function renderCompatibleModels(models) {
+            const modalBody = document.getElementById('modalBody');
+            const countBar = document.getElementById('modelCountBar');
+            const searchInput = document.getElementById('modelSearchInput');
+
+            if (!models || models.length === 0) {
+                modalBody.innerHTML = '<div style="text-align:center;padding:40px 0;color:#9ca3af;">호환되는 모델 정보가 없습니다.</div>';
+                if (countBar) countBar.textContent = '';
+                return;
+            }
+
+            _allModelList = Array.isArray(models) ? models : [];
+
+            if (searchInput) searchInput.value = ''; // 검색창 초기화
+            renderModelItems(_allModelList);
+        }
+
+        function renderModelItems(list) {
+            const modalBody = document.getElementById('modalBody');
+            const countBar = document.getElementById('modelCountBar');
+
+            if (countBar) countBar.textContent = `총 ${list.length}개`;
+
+            if (list.length === 0) {
+                modalBody.innerHTML = '<div style="text-align:center;padding:40px 0;color:#9ca3af;">검색 결과가 없습니다.</div>';
+                return;
+            }
+
+            modalBody.innerHTML = list.map(m => {
+                const label = typeof m === 'object'
+                    ? (m.modelNm || m.modelName || m.name || JSON.stringify(m))
+                    : m;
+                return `<div class="model-item">${label}</div>`;
+            }).join('');
+        }
+
+        window.filterModelList = function (query) {
+            const q = query.trim().toLowerCase();
+            const filtered = q
+                ? _allModelList.filter(m => {
+                    const label = typeof m === 'object'
+                        ? (m.modelNm || m.modelName || m.name || '').toLowerCase()
+                        : String(m).toLowerCase();
+                    return label.includes(q);
+                })
+                : _allModelList;
+            renderModelItems(filtered);
+        };
+
+        window.closeModelModal = function () {
+            const modal = document.getElementById('modelModal');
+            modal.classList.remove('active');
+        };
+
+        async function syncWithGoogleSheet() {
+            const parseCSVLine = (text) => {
+                const result = [];
+                let current = "";
+                let inQuotes = false;
+                for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) {
+                        result.push(current.trim());
+                        current = "";
+                    } else current += char;
+                }
+                result.push(current.trim());
+                return result;
+            };
+
+            window.handleResponse = function (response) {
+                try {
+                    const data = response.table;
+                    const rows = data.rows;
+                    let loadedCount = 0;
+
+                    for (let i = 0; i < rows.length; i++) {
+                        const row = rows[i].c;
+                        if (row && (row[0] || row[1])) {
+                            let modelName = "";
+                            if (row[1] && row[1].v) {
+                                modelName = String(row[1].v).toUpperCase().trim();
+                            } else if (row[0] && row[0].v) {
+                                modelName = String(row[0].v).toUpperCase().trim();
+                            }
+
+                            if (modelName && modelName !== "모델명" && modelName !== "MODEL") {
+                                MODEL_DATA[modelName] = {
+                                    "array1": row[2] ? row[2].v : (row[1] ? row[1].v : ""),
+                                    "array2": row[3] ? row[3].v : "",
+                                    "edge1": row[4] ? row[4].v : "",
+                                    "edge2": row[5] ? row[5].v : "",
+                                    "도광판": row[6] ? row[6].v : ""
+                                };
+                                loadedCount++;
+                            }
+                        }
+                    }
+                    console.log(`구글 시트 연동 성공: ${loadedCount}개 모델 로드 완료.`);
+                    initExpendables();
+                    initModelModal();
+                } catch (e) {
+                    console.error('데이터 처리 실패:', e);
+                    initExpendables();
+                    initModelModal();
+                }
+            };
+
+            window.handlePurifierResponse = function (response) {
+                try {
+                    const data = response.table;
+                    const rows = data.rows;
+                    const newData = [];
+
+                    for (let i = 0; i < rows.length; i++) {
+                        const row = rows[i].c;
+                        if (row && row[0] && row[0].v) {
+                            newData.push({
+                                "model": String(row[0].v).toUpperCase().trim(),
+                                "테스트모드진입방법": row[1] ? row[1].v : "-",
+                                "Comp강제기동모드진입방법": row[2] ? row[2].v : "-",
+                                "배수모드": row[3] ? row[3].v : "-",
+                                "급수모드": row[4] ? row[4].v : "-",
+                                "IH출력보정": row[5] ? row[5].v : "-",
+                                "필터Reset": row[6] ? row[6].v : "-",
+                                "SVCErrorDisplay": row[7] ? row[7].v : "-",
+                                "살균모듈수명Reset": row[8] ? row[8].v : "-",
+                                "직수관살균시간설정": row[9] ? row[9].v : "-",
+                                "살균모드": row[10] ? row[10].v : "-",
+                                "스마트진단": row[11] ? row[11].v : "-"
+                            });
+                        }
+                    }
+                    PURIFIER_DATA = newData;
+                    console.log(`구글 시트 정수기 연동 성공: ${newData.length}개 모델 로드 완료.`);
+                } catch (e) {
+                    console.error('정수기 데이터 처리 실패:', e);
+                }
+            };
+
+            window.handlePowerResponse = function (response) {
+                try {
+                    const data = response.table;
+                    const rows = data.rows;
+                    const newData = [];
+
+                    for (let i = 0; i < rows.length; i++) {
+                        const row = rows[i].c;
+                        if (row && row[2] && row[2].v) {
+                            newData.push({
+                                "product": row[0] ? String(row[0].v) : "TV",
+                                "errorCode": row[1] ? String(row[1].v) : "-",
+                                "codeName": String(row[2].v).toUpperCase().trim(),
+                                "description": row[3] ? row[3].v : "-",
+                                "solution": row[4] ? row[4].v : "-"
+                            });
+                        }
+                    }
+                    POWER_OFF_DATA = newData;
+                    console.log(`구글 시트 파워 연동 성공: ${newData.length}개 코드 로드 완료.`);
+                } catch (e) {
+                    console.error('파워 데이터 처리 실패:', e);
+                }
+            };
+
+            const CACHE_KEY = 'G_SHEET_DATA_CACHE';
+            const CACHE_TIME_KEY = 'G_SHEET_DATA_TIME';
+            const cacheDuration = 1000 * 60 * 60; // 1시간
+
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+
+            if (cachedData && cachedTime && (Date.now() - cachedTime < cacheDuration)) {
+                console.log('캐시된 데이터를 사용합니다.');
+                try {
+                    const parsedCache = JSON.parse(cachedData);
+
+                    if (parsedCache.MODEL_DATA) Object.assign(MODEL_DATA, parsedCache.MODEL_DATA);
+                    if (parsedCache.PURIFIER_DATA) PURIFIER_DATA = parsedCache.PURIFIER_DATA;
+                    if (parsedCache.POWER_OFF_DATA) POWER_OFF_DATA = parsedCache.POWER_OFF_DATA;
+
+                    initExpendables();
+                    initModelModal();
+                } catch (e) {
+                    console.error('캐시 복원 실패:', e);
+                }
+            }
+
+            const sheetId = '199TJ47n5aoTahLgXrv1ozwGYP-f6UZmKRxzVcNhar5A';
+
+            const updateCache = () => {
+                const cacheObj = {
+                    MODEL_DATA,
+                    PURIFIER_DATA,
+                    POWER_OFF_DATA
+                };
+                localStorage.setItem(CACHE_KEY, JSON.stringify(cacheObj));
+                localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+            };
+
+            const originalHandleResponse = window.handleResponse;
+            window.handleResponse = function (resp) {
+                if (originalHandleResponse) originalHandleResponse(resp);
+                updateCache();
+            };
+
+            const originalHandlePurifierResponse = window.handlePurifierResponse;
+            window.handlePurifierResponse = function (resp) {
+                if (originalHandlePurifierResponse) originalHandlePurifierResponse(resp);
+                updateCache();
+            };
+
+            const originalHandlePowerResponse = window.handlePowerResponse;
+            window.handlePowerResponse = function (resp) {
+                if (originalHandlePowerResponse) originalHandlePowerResponse(resp);
+                updateCache();
+            };
+
+            const urlArray = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:handleResponse&gid=0`;
+
+            const urlPurifier = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:handlePurifierResponse&sheet=puri`;
+
+            const urlPower = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:handlePowerResponse&sheet=POWER`;
+
+            console.log('구글 시트 연동 시도 중...');
+
+            [urlArray, urlPurifier, urlPower].forEach(url => {
+                const script = document.createElement('script');
+                script.src = url;
+                script.async = true;
+                document.body.appendChild(script);
+            });
+        }
+
+        window.addEventListener('load', () => {
+            syncWithGoogleSheet();
+        });
+    </script>
+    <div id="toast">
+        <span class="material-symbols-outlined text-green-400">check_circle</span>
+        <span class="text-sm">복사하였습니다.</span>
+    </div>
+</body>
+
+</html>
