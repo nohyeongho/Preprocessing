@@ -2171,7 +2171,7 @@
             <div id="emptyState" class="text-center py-12 text-slate-400">
                 <span class="material-symbols-outlined text-5xl mb-2">find_in_page</span>
                 <p>🚩검색 후 우측 상단 "X" 버튼을 누르면 좋아요(👍)! 싫어요(👎)! 선택 버튼이 나타납니다. 꼭 의견을 남겨주세요.</p>
-            </div>종
+            </div>
 
             <div id="resultCard"
                 class="bg-white dark:bg-slate-900 rounded-[16px] md:rounded-[24px] p-3 md:p-5 lg:p-8 shadow-2xl shadow-slate-200/50 dark:shadow-slate-950/50 transform transition-all duration-500 hidden scale-95 opacity-0 border border-slate-100 dark:border-slate-800">
@@ -3616,184 +3616,162 @@
         };
 
         async function syncWithGoogleSheet() {
-            const parseCSVLine = (text) => {
-                const result = [];
-                let current = "";
-                let inQuotes = false;
-                for (let i = 0; i < text.length; i++) {
-                    const char = text[i];
-                    if (char === '"') inQuotes = !inQuotes;
-                    else if (char === ',' && !inQuotes) {
-                        result.push(current.trim());
-                        current = "";
-                    } else current += char;
-                }
-                result.push(current.trim());
-                return result;
-            };
+            const CACHE_KEY = 'G_SHEET_DATA_CACHE';
+            const CACHE_TIME_KEY = 'G_SHEET_DATA_TIME';
+            const cacheDuration = 1000 * 60 * 60; // 1시간
 
-            window.handleResponse = function (response) {
-                try {
-                    const data = response.table;
-                    const rows = data.rows;
+            // 핸들러 정의 (데이터 처리 로직은 유지)
+            const handlers = {
+                handleResponse: (response) => {
+                    const rows = response.table.rows;
                     let loadedCount = 0;
-
                     for (let i = 0; i < rows.length; i++) {
                         const row = rows[i].c;
                         if (row && (row[0] || row[1])) {
-                            let modelName = "";
-                            if (row[1] && row[1].v) {
-                                modelName = String(row[1].v).toUpperCase().trim();
-                            } else if (row[0] && row[0].v) {
-                                modelName = String(row[0].v).toUpperCase().trim();
-                            }
-
-                            if (modelName && modelName !== "모델명" && modelName !== "MODEL") {
+                            let modelName = (row[1]?.v || row[0]?.v || "").toString().toUpperCase().trim();
+                            if (modelName && !["모델명", "MODEL"].includes(modelName)) {
                                 MODEL_DATA[modelName] = {
-                                    "array1": row[2] ? row[2].v : (row[1] ? row[1].v : ""),
-                                    "array2": row[3] ? row[3].v : "",
-                                    "edge1": row[4] ? row[4].v : "",
-                                    "edge2": row[5] ? row[5].v : "",
-                                    "도광판": row[6] ? row[6].v : ""
+                                    "array1": row[2]?.v || row[1]?.v || "",
+                                    "array2": row[3]?.v || "",
+                                    "edge1": row[4]?.v || "",
+                                    "edge2": row[5]?.v || "",
+                                    "도광판": row[6]?.v || ""
                                 };
                                 loadedCount++;
                             }
                         }
                     }
-                    console.log(`구글 시트 연동 성공: ${loadedCount}개 모델 로드 완료.`);
-                    initExpendables();
-                    initModelModal();
-                } catch (e) {
-                    console.error('데이터 처리 실패:', e);
-                    initExpendables();
-                    initModelModal();
+                    console.log(`어레이 데이터: ${loadedCount}개 로드`);
+                },
+                handlePurifierResponse: (response) => {
+                    const rows = response.table.rows;
+                    PURIFIER_DATA = rows.filter(r => r.c && r.c[0] && r.c[0].v).map(r => ({
+                        "model": String(r.c[0].v).toUpperCase().trim(),
+                        "테스트모드진입방법": r.c[1]?.v || "-",
+                        "Comp강제기동모드진입방법": r.c[2]?.v || "-",
+                        "배수모드진입방법": r.c[3]?.v || "-",
+                        "급수모드": r.c[4]?.v || "-",
+                        "IH출력보정": r.c[5]?.v || "-",
+                        "필터Reset": r.c[6]?.v || "-",
+                        "SVCErrorDisplay": r.c[7]?.v || "-",
+                        "살균모듈수명Reset": r.c[8]?.v || "-",
+                        "직수관살균시간설정": r.c[9]?.v || "-",
+                        "살균모드": r.c[10]?.v || "-",
+                        "스마트진단": r.c[11]?.v || "-",
+                        "필터플러싱모드": r.c[12]?.v || "-"
+                    }));
+                    console.log(`정수기 데이터: ${PURIFIER_DATA.length}개 로드`);
+                },
+                handlePowerResponse: (response) => {
+                    const rows = response.table.rows;
+                    POWER_OFF_DATA = rows.filter(r => r.c && r.c[2] && r.c[2].v).map(r => ({
+                        "product": r.c[0]?.v ? String(r.c[0].v) : "TV",
+                        "errorCode": r.c[1]?.v ? String(r.c[1].v) : "-",
+                        "codeName": String(r.c[2].v).toUpperCase().trim(),
+                        "description": r.c[3]?.v || "-",
+                        "solution": r.c[4]?.v || "-"
+                    }));
+                    console.log(`파워 데이터: ${POWER_OFF_DATA.length}개 로드`);
                 }
             };
 
-            window.handlePurifierResponse = function (response) {
-                try {
-                    const data = response.table;
-                    const rows = data.rows;
-                    const newData = [];
-
-                    for (let i = 0; i < rows.length; i++) {
-                        const row = rows[i].c;
-                        if (row && row[0] && row[0].v) {
-                            newData.push({
-                                "model": String(row[0].v).toUpperCase().trim(),
-                                "테스트모드진입방법": row[1] ? row[1].v : "-",
-                                "Comp강제기동모드진입방법": row[2] ? row[2].v : "-",
-                                "배수모드": row[3] ? row[3].v : "-",
-                                "급수모드": row[4] ? row[4].v : "-",
-                                "IH출력보정": row[5] ? row[5].v : "-",
-                                "필터Reset": row[6] ? row[6].v : "-",
-                                "SVCErrorDisplay": row[7] ? row[7].v : "-",
-                                "살균모듈수명Reset": row[8] ? row[8].v : "-",
-                                "직수관살균시간설정": row[9] ? row[9].v : "-",
-                                "살균모드": row[10] ? row[10].v : "-",
-                                "스마트진단": row[11] ? row[11].v : "-"
-                            });
-                        }
-                    }
-                    PURIFIER_DATA = newData;
-                    console.log(`구글 시트 정수기 연동 성공: ${newData.length}개 모델 로드 완료.`);
-                } catch (e) {
-                    console.error('정수기 데이터 처리 실패:', e);
-                }
-            };
-
-            window.handlePowerResponse = function (response) {
-                try {
-                    const data = response.table;
-                    const rows = data.rows;
-                    const newData = [];
-
-                    for (let i = 0; i < rows.length; i++) {
-                        const row = rows[i].c;
-                        if (row && row[2] && row[2].v) {
-                            newData.push({
-                                "product": row[0] ? String(row[0].v) : "TV",
-                                "errorCode": row[1] ? String(row[1].v) : "-",
-                                "codeName": String(row[2].v).toUpperCase().trim(),
-                                "description": row[3] ? row[3].v : "-",
-                                "solution": row[4] ? row[4].v : "-"
-                            });
-                        }
-                    }
-                    POWER_OFF_DATA = newData;
-                    console.log(`구글 시트 파워 연동 성공: ${newData.length}개 코드 로드 완료.`);
-                } catch (e) {
-                    console.error('파워 데이터 처리 실패:', e);
-                }
-            };
-
-            const CACHE_KEY = 'G_SHEET_DATA_CACHE';
-            const CACHE_TIME_KEY = 'G_SHEET_DATA_TIME';
-            const cacheDuration = 1000 * 60 * 60; // 1시간
-
-            const cachedData = localStorage.getItem(CACHE_KEY);
-            const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
-
-            if (cachedData && cachedTime && (Date.now() - cachedTime < cacheDuration)) {
-                console.log('캐시된 데이터를 사용합니다.');
-                try {
-                    const parsedCache = JSON.parse(cachedData);
-
-                    if (parsedCache.MODEL_DATA) Object.assign(MODEL_DATA, parsedCache.MODEL_DATA);
-                    if (parsedCache.PURIFIER_DATA) PURIFIER_DATA = parsedCache.PURIFIER_DATA;
-                    if (parsedCache.POWER_OFF_DATA) POWER_OFF_DATA = parsedCache.POWER_OFF_DATA;
-
-                    initExpendables();
-                    initModelModal();
-                } catch (e) {
-                    console.error('캐시 복원 실패:', e);
-                }
-            }
-
-            const sheetId = '199TJ47n5aoTahLgXrv1ozwGYP-f6UZmKRxzVcNhar5A';
-
+            // 캐시 업데이트 함수
             const updateCache = () => {
-                const cacheObj = {
-                    MODEL_DATA,
-                    PURIFIER_DATA,
-                    POWER_OFF_DATA
-                };
+                const cacheObj = { MODEL_DATA, PURIFIER_DATA, POWER_OFF_DATA };
                 localStorage.setItem(CACHE_KEY, JSON.stringify(cacheObj));
                 localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
             };
 
-            const originalHandleResponse = window.handleResponse;
-            window.handleResponse = function (resp) {
-                if (originalHandleResponse) originalHandleResponse(resp);
-                updateCache();
-            };
+            // 1. 캐시 먼저 로드
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+            if (cachedData && cachedTime && (Date.now() - cachedTime < cacheDuration)) {
+                console.log('캐시된 데이터를 즉시 사용합니다.');
+                try {
+                    const parsed = JSON.parse(cachedData);
+                    if (parsed.MODEL_DATA) Object.assign(MODEL_DATA, parsed.MODEL_DATA);
+                    if (parsed.PURIFIER_DATA) PURIFIER_DATA = parsed.PURIFIER_DATA;
+                    if (parsed.POWER_OFF_DATA) POWER_OFF_DATA = parsed.POWER_OFF_DATA;
+                    initExpendables();
+                    initModelModal();
+                } catch (e) { console.error('캐시 복원 실패:', e); }
+            }
 
-            const originalHandlePurifierResponse = window.handlePurifierResponse;
-            window.handlePurifierResponse = function (resp) {
-                if (originalHandlePurifierResponse) originalHandlePurifierResponse(resp);
-                updateCache();
-            };
+            // 2. 우회 방식 연동 시도
+            const sheetId = '199TJ47n5aoTahLgXrv1ozwGYP-f6UZmKRxzVcNhar5A';
+            const urls = [
+                { id: 'array', url: `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=0`, handler: 'handleResponse' },
+                { id: 'purifier', url: `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=puri`, handler: 'handlePurifierResponse' },
+                { id: 'power', url: `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=POWER`, handler: 'handlePowerResponse' }
+            ];
 
-            const originalHandlePowerResponse = window.handlePowerResponse;
-            window.handlePowerResponse = function (resp) {
-                if (originalHandlePowerResponse) originalHandlePowerResponse(resp);
-                updateCache();
-            };
+            const proxies = [
+                (u) => u, // Direct
+                (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+                (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+                (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+            ];
 
-            const urlArray = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:handleResponse&gid=0`;
+            async function fetchWithBypass(targetUrl) {
+                const fetchAttempt = async (proxyFn) => {
+                    const url = proxyFn(targetUrl);
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error('Network error');
+                    let text = await res.text();
 
-            const urlPurifier = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:handlePurifierResponse&sheet=puri`;
+                    // AllOrigins 처리
+                    if (url.includes('allorigins')) {
+                        const parsed = JSON.parse(text);
+                        text = parsed.contents;
+                    }
 
-            const urlPower = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:handlePowerResponse&sheet=POWER`;
+                    // JSONP wrapper 제거 로직 (gviz/tq 응답 대응)
+                    const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
+                    if (match) return JSON.parse(match[1]);
 
-            console.log('구글 시트 연동 시도 중...');
+                    // 만약 이미 순수 JSON이라면
+                    try { return JSON.parse(text); } catch (e) { throw new Error('Parsing error'); }
+                };
 
-            [urlArray, urlPurifier, urlPower].forEach(url => {
-                const script = document.createElement('script');
-                script.src = url;
-                script.async = true;
-                document.body.appendChild(script);
-            });
+                // 여러 프록시 중 가장 먼저 성공하는 것 사용
+                return Promise.any(proxies.map(p => fetchAttempt(p)));
+            }
+
+            console.log('구글 시트 연동(우회 모드) 시도 중...');
+
+            try {
+                const results = await Promise.allSettled(urls.map(u => fetchWithBypass(u.url)));
+                let successCount = 0;
+
+                results.forEach((res, idx) => {
+                    if (res.status === 'fulfilled') {
+                        handlers[urls[idx].handler](res.value);
+                        successCount++;
+                    } else {
+                        console.warn(`${urls[idx].id} 로드 실패:`, res.reason);
+                    }
+                });
+
+                if (successCount > 0) {
+                    updateCache();
+                    showToast(`${successCount}개 데이터 동기화 완료`);
+                    // 초기화 확인
+                    if (typeof exp_isInitialized === 'undefined' || !exp_isInitialized) {
+                        initExpendables();
+                        initModelModal();
+                    }
+                } else {
+                    throw new Error('모든 프록시 시도 실패');
+                }
+            } catch (err) {
+                console.error('동기화 최종 실패:', err);
+                showToast("구글 시트 연동 실패. 내부망 차단이 강력합니다.");
+                // 초기화라도 수행
+                if (typeof exp_isInitialized === 'undefined' || !exp_isInitialized) {
+                    initExpendables();
+                    initModelModal();
+                }
+            }
         }
 
         window.addEventListener('load', () => {
